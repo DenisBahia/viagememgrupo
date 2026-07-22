@@ -33,5 +33,7 @@ public class Location
 
     public Guid AddedById { get; set; }
     public User AddedBy { get; set; } = null!;
+
+    public ICollection<LocationVote> Votes { get; set; } = [];
 }
 

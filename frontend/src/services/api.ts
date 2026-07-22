@@ -39,6 +39,13 @@ export const createGroup = (data: {
   name: string; destination: string; startDate?: string; endDate?: string;
 }) => api.post<TravelGroup>('/groups', data).then(r => r.data);
 
+export const updateGroup = (id: string, data: {
+  name: string; destination: string; startDate?: string; endDate?: string;
+}) => api.put<TravelGroup>(`/groups/${id}`, data).then(r => r.data);
+
+export const getGroup = (id: string) =>
+  api.get<TravelGroup>(`/groups/${id}`).then(r => r.data);
+
 export const joinGroup = (shareKey: string) =>
   api.post<TravelGroup>('/groups/join', { shareKey }).then(r => r.data);
 
@@ -60,6 +67,12 @@ export const updateLocation = (id: string, data: UpdateLocationRequest) =>
 
 export const deleteLocation = (id: string) =>
   api.delete(`/locations/${id}`);
+
+export const voteLocation = (id: string, isLike: boolean) =>
+  api.post<Location>(`/locations/${id}/vote`, { isLike }).then(r => r.data);
+
+export const removeVote = (id: string) =>
+  api.delete<Location>(`/locations/${id}/vote`).then(r => r.data);
 
 export const exportRoute = (groupId: string, dayLabel?: string) =>
   api.get<{ url: string }>(`/groups/${groupId}/export-route`, {

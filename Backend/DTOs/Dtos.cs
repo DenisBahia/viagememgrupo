@@ -8,11 +8,14 @@ public record UserDto(Guid Id, string Name, string Email);
 
 // Groups
 public record CreateGroupRequest(string Name, string Destination, DateTime? StartDate, DateTime? EndDate);
+public record UpdateGroupRequest(string Name, string Destination, DateTime? StartDate, DateTime? EndDate);
 public record JoinGroupRequest(string ShareKey);
+public record GroupMemberDto(Guid Id, string Name, string Email, string Role);
 public record GroupDto(
     Guid Id, string Name, string Destination,
     DateTime? StartDate, DateTime? EndDate,
-    string ShareKey, string OwnerName, int MemberCount, DateTime CreatedAt);
+    string ShareKey, string OwnerName, int MemberCount, DateTime CreatedAt,
+    bool IsOwner, List<GroupMemberDto> Members);
 
 // Locations
 public record CreateLocationRequest(
@@ -35,7 +38,12 @@ public record UpdateLocationRequest(
     bool? NeedsReservation,
     bool? ReservationDone,
     string? Notes,
-    string? DayLabel);
+    string? DayLabel,
+    bool ClearVisitDate = false,
+    bool ClearVisitTime = false,
+    bool ClearDurationHours = false,
+    bool ClearNotes = false,
+    bool ClearDayLabel = false);
 
 public record LocationDto(
     Guid Id,
@@ -57,7 +65,14 @@ public record LocationDto(
     string? DayLabel,
     string? PhotoUrl,
     string AddedByName,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    int LikeCount,
+    int DislikeCount,
+    bool? MyVote,
+    List<string> LikedByNames,
+    List<string> DislikedByNames);
+
+public record VoteRequest(bool IsLike);
 
 public record ParsedPlaceDto(
     string Name,

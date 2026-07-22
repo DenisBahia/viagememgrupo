@@ -9,6 +9,13 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface GroupMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'member';
+}
+
 export interface TravelGroup {
   id: string;
   name: string;
@@ -19,6 +26,8 @@ export interface TravelGroup {
   ownerName: string;
   memberCount: number;
   createdAt: string;
+  isOwner?: boolean;
+  members?: GroupMember[];
 }
 
 export type Priority = 'must' | 'nice' | 'maybe';
@@ -45,6 +54,11 @@ export interface Location {
   photoUrl?: string;
   addedByName: string;
   createdAt: string;
+  likeCount: number;
+  dislikeCount: number;
+  myVote?: boolean | null;
+  likedByNames: string[];
+  dislikedByNames: string[];
 }
 
 export interface ParsedPlace {
@@ -80,5 +94,10 @@ export interface UpdateLocationRequest {
   reservationDone?: boolean;
   notes?: string;
   dayLabel?: string;
+  clearVisitDate?: boolean;
+  clearVisitTime?: boolean;
+  clearDurationHours?: boolean;
+  clearNotes?: boolean;
+  clearDayLabel?: boolean;
 }
 

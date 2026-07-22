@@ -86,6 +86,27 @@ public class GroupsController(AppDbContext db) : ControllerBase
         return Ok(MapToDto(group));
     }
 
+    [HttpPut("{id}")]
+    public async Task<ActionResult<GroupDto>> UpdateGroup(Guid id, UpdateGroupRequest req)
+    {
+        var member = await db.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == UserId);
+        if (member == null) return Forbid();
+        if (member.Role != "owner") return Forbid();
+
+        var group = await db.TravelGroups
+            .Include(g => g.Members).ThenInclude(m => m.User)
+            .FirstOrDefaultAsync(g => g.Id == id);
+        if (group == null) return NotFound();
+
+        group.Name = req.Name;
+        group.Destination = req.Destination;
+        group.StartDate = req.StartDate;
+        group.EndDate = req.EndDate;
+
+        await db.SaveChangesAsync();
+        return Ok(MapToDto(group));
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteGroup(Guid id)
     {
@@ -101,11 +122,17 @@ public class GroupsController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
-    private static GroupDto MapToDto(TravelGroup g)
+    private GroupDto MapToDto(TravelGroup g)
     {
         var owner = g.Members.FirstOrDefault(m => m.Role == "owner")?.User;
+        var isOwner = g.Members.Any(m => m.UserId == UserId && m.Role == "owner");
+        var members = g.Members
+            .OrderByDescending(m => m.Role == "owner")
+            .ThenBy(m => m.User.Name)
+            .Select(m => new GroupMemberDto(m.UserId, m.User.Name, m.User.Email, m.Role))
+            .ToList();
         return new GroupDto(g.Id, g.Name, g.Destination, g.StartDate, g.EndDate,
-            g.ShareKey, owner?.Name ?? "", g.Members.Count, g.CreatedAt);
+            g.ShareKey, owner?.Name ?? "", g.Members.Count, g.CreatedAt, isOwner, members);
     }
 }
 

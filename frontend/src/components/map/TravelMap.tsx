@@ -1,18 +1,33 @@
 import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps';
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Location } from '../../types';
 import { PRIORITY_PIN_COLORS, TYPE_CONFIG, PRIORITY_CONFIG } from '../ui/constants';
-import { Star, Clock, Calendar, ExternalLink } from 'lucide-react';
+import { voteLocation } from '../../services/api';
+import VotersTooltip from '../locations/VotersTooltip';
+import toast from 'react-hot-toast';
+import { Star, Clock, Calendar, ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface TravelMapProps {
   locations: Location[];
   center?: { lat: number; lng: number };
+  groupId?: string;
 }
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
 
-export default function TravelMap({ locations, center }: TravelMapProps) {
+export default function TravelMap({ locations, center, groupId }: TravelMapProps) {
   const [selected, setSelected] = useState<Location | null>(null);
+  const qc = useQueryClient();
+
+  const voteMutation = useMutation({
+    mutationFn: ({ id, isLike }: { id: string; isLike: boolean }) => voteLocation(id, isLike),
+    onSuccess: updated => {
+      setSelected(updated);
+      if (groupId) qc.invalidateQueries({ queryKey: ['locations', groupId] });
+    },
+    onError: () => toast.error('Erro ao registrar seu voto.')
+  });
 
   const defaultCenter = center ?? (
     locations.length > 0
@@ -26,9 +41,22 @@ export default function TravelMap({ locations, center }: TravelMapProps) {
         defaultCenter={defaultCenter}
         defaultZoom={13}
         mapId="viagememgrupo-map"
+        renderingType="RASTER"
         style={{ width: '100%', height: '100%' }}
         gestureHandling="greedy"
         disableDefaultUI={false}
+        fullscreenControl={false}
+        zoomControlOptions={{ position: 9 /* RIGHT_BOTTOM */ }}
+        streetViewControl={false}
+        clickableIcons={false}
+        styles={[
+          // Hide Google's default points-of-interest icons/labels so only
+          // the locations added to the group show up on the map.
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit.station', stylers: [{ visibility: 'off' }] },
+        ]}
       >
         {locations.map(loc => (
           <AdvancedMarker
@@ -53,7 +81,7 @@ export default function TravelMap({ locations, center }: TravelMapProps) {
             onCloseClick={() => setSelected(null)}
             pixelOffset={[0, -40]}
           >
-            <div className="max-w-xs p-1">
+            <div className="w-[min(80vw,280px)] p-1">
               {selected.photoUrl && (
                 <img src={selected.photoUrl} alt={selected.name} className="w-full h-24 object-cover rounded-md mb-2" />
               )}
@@ -87,6 +115,36 @@ export default function TravelMap({ locations, center }: TravelMapProps) {
                   <Clock size={11} /> {selected.durationHours}h estimadas
                 </p>
               )}
+
+              {/* Like / dislike */}
+              <div className="flex items-center gap-1.5 mt-2">
+                <VotersTooltip names={selected.likedByNames}>
+                  <button
+                    onClick={() => voteMutation.mutate({ id: selected.id, isLike: true })}
+                    disabled={voteMutation.isPending}
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium border transition ${
+                      selected.myVote === true
+                        ? 'border-green-300 bg-green-50 text-green-700'
+                        : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-green-600'
+                    }`}
+                  >
+                    <ThumbsUp size={11} fill={selected.myVote === true ? 'currentColor' : 'none'} /> {selected.likeCount}
+                  </button>
+                </VotersTooltip>
+                <VotersTooltip names={selected.dislikedByNames}>
+                  <button
+                    onClick={() => voteMutation.mutate({ id: selected.id, isLike: false })}
+                    disabled={voteMutation.isPending}
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium border transition ${
+                      selected.myVote === false
+                        ? 'border-red-300 bg-red-50 text-red-700'
+                        : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-red-600'
+                    }`}
+                  >
+                    <ThumbsDown size={11} fill={selected.myVote === false ? 'currentColor' : 'none'} /> {selected.dislikeCount}
+                  </button>
+                </VotersTooltip>
+              </div>
 
               <div className="flex gap-2 mt-2">
                 <a

@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TravelGroup> TravelGroups => Set<TravelGroup>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<Location> Locations => Set<Location>();
+    public DbSet<LocationVote> LocationVotes => Set<LocationVote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +44,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(l => l.AddedBy)
             .WithMany(u => u.AddedLocations)
             .HasForeignKey(l => l.AddedById);
+
+        modelBuilder.Entity<LocationVote>()
+            .HasIndex(v => new { v.LocationId, v.UserId })
+            .IsUnique();
+
+        modelBuilder.Entity<LocationVote>()
+            .HasOne(v => v.Location)
+            .WithMany(l => l.Votes)
+            .HasForeignKey(v => v.LocationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<LocationVote>()
+            .HasOne(v => v.User)
+            .WithMany()
+            .HasForeignKey(v => v.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

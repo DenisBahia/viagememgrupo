@@ -39,6 +39,7 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService)
         var locations = await db.Locations
             .Where(l => l.GroupId == groupId)
             .Include(l => l.AddedBy)
+            .Include(l => l.Votes).ThenInclude(v => v.User)
             .OrderBy(l => l.VisitDate).ThenBy(l => l.VisitTime).ThenBy(l => l.CreatedAt)
             .ToListAsync();
 
@@ -85,19 +86,30 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService)
     [HttpPut("locations/{id}")]
     public async Task<ActionResult<LocationDto>> UpdateLocation(Guid id, UpdateLocationRequest req)
     {
-        var location = await db.Locations.Include(l => l.AddedBy).FirstOrDefaultAsync(l => l.Id == id);
+        var location = await db.Locations.Include(l => l.AddedBy).Include(l => l.Votes).ThenInclude(v => v.User).FirstOrDefaultAsync(l => l.Id == id);
         if (location == null) return NotFound();
         if (!await IsMemberAsync(location.GroupId)) return Forbid();
 
         if (req.Priority != null) location.Priority = req.Priority;
         if (req.Type != null) location.Type = req.Type;
-        if (req.VisitDate.HasValue) location.VisitDate = req.VisitDate;
-        if (req.VisitTime != null) location.VisitTime = req.VisitTime;
-        if (req.DurationHours.HasValue) location.DurationHours = req.DurationHours;
+
+        if (req.ClearVisitDate) location.VisitDate = null;
+        else if (req.VisitDate.HasValue) location.VisitDate = req.VisitDate;
+
+        if (req.ClearVisitTime) location.VisitTime = null;
+        else if (req.VisitTime != null) location.VisitTime = req.VisitTime;
+
+        if (req.ClearDurationHours) location.DurationHours = null;
+        else if (req.DurationHours.HasValue) location.DurationHours = req.DurationHours;
+
         if (req.NeedsReservation.HasValue) location.NeedsReservation = req.NeedsReservation.Value;
         if (req.ReservationDone.HasValue) location.ReservationDone = req.ReservationDone.Value;
-        if (req.Notes != null) location.Notes = req.Notes;
-        if (req.DayLabel != null) location.DayLabel = req.DayLabel;
+
+        if (req.ClearNotes) location.Notes = null;
+        else if (req.Notes != null) location.Notes = req.Notes;
+
+        if (req.ClearDayLabel) location.DayLabel = null;
+        else if (req.DayLabel != null) location.DayLabel = req.DayLabel;
 
         await db.SaveChangesAsync();
         return Ok(MapToDto(location));
@@ -113,6 +125,59 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService)
         db.Locations.Remove(location);
         await db.SaveChangesAsync();
         return NoContent();
+    }
+
+    // Like / dislike a location. Voting again with the same value removes the vote (toggle off).
+    [HttpPost("locations/{id}/vote")]
+    public async Task<ActionResult<LocationDto>> VoteLocation(Guid id, VoteRequest req)
+    {
+        var location = await db.Locations.Include(l => l.AddedBy).Include(l => l.Votes).ThenInclude(v => v.User).FirstOrDefaultAsync(l => l.Id == id);
+        if (location == null) return NotFound();
+        if (!await IsMemberAsync(location.GroupId)) return Forbid();
+
+        var existing = location.Votes.FirstOrDefault(v => v.UserId == UserId);
+        if (existing != null)
+        {
+            if (existing.IsLike == req.IsLike)
+            {
+                // Same vote clicked again -> remove it (toggle off)
+                db.LocationVotes.Remove(existing);
+                location.Votes.Remove(existing);
+            }
+            else
+            {
+                existing.IsLike = req.IsLike;
+            }
+        }
+        else
+        {
+            var vote = new LocationVote { LocationId = id, UserId = UserId, IsLike = req.IsLike };
+            db.LocationVotes.Add(vote);
+            location.Votes.Add(vote);
+            // Attach the current user so MapToDto can read the voter's name without a re-query.
+            vote.User = await db.Users.FindAsync(UserId) ?? vote.User;
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(MapToDto(location));
+    }
+
+    [HttpDelete("locations/{id}/vote")]
+    public async Task<ActionResult<LocationDto>> RemoveVote(Guid id)
+    {
+        var location = await db.Locations.Include(l => l.AddedBy).Include(l => l.Votes).ThenInclude(v => v.User).FirstOrDefaultAsync(l => l.Id == id);
+        if (location == null) return NotFound();
+        if (!await IsMemberAsync(location.GroupId)) return Forbid();
+
+        var existing = location.Votes.FirstOrDefault(v => v.UserId == UserId);
+        if (existing != null)
+        {
+            db.LocationVotes.Remove(existing);
+            location.Votes.Remove(existing);
+            await db.SaveChangesAsync();
+        }
+
+        return Ok(MapToDto(location));
     }
 
     // Generate Google Maps directions URL for all locations of a day
@@ -141,12 +206,17 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService)
         return Ok(new { url });
     }
 
-    private static LocationDto MapToDto(Location l) => new(
+    private LocationDto MapToDto(Location l) => new(
         l.Id, l.Name, l.Address, l.GoogleMapsUrl, l.GooglePlaceId,
         l.Lat, l.Lng, l.Type, l.Priority, l.VisitDate, l.VisitTime,
         l.DurationHours, l.NeedsReservation, l.ReservationDone,
         l.Notes, l.GoogleRating, l.DayLabel, l.PhotoUrl,
-        l.AddedBy?.Name ?? "", l.CreatedAt);
+        l.AddedBy?.Name ?? "", l.CreatedAt,
+        l.Votes.Count(v => v.IsLike),
+        l.Votes.Count(v => !v.IsLike),
+        l.Votes.FirstOrDefault(v => v.UserId == UserId)?.IsLike,
+        l.Votes.Where(v => v.IsLike).Select(v => v.User?.Name ?? "").ToList(),
+        l.Votes.Where(v => !v.IsLike).Select(v => v.User?.Name ?? "").ToList());
 }
 
 public record PreviewRequest(string Url);

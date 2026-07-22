@@ -4,6 +4,7 @@ import { register } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { MapPin, UserPlus } from 'lucide-react';
+import { PENDING_SHARE_KEY } from './JoinPage';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -23,7 +24,8 @@ export default function RegisterPage() {
     try {
       const data = await register(name, email, password);
       setAuth(data.token, data.user);
-      navigate('/');
+      const pendingKey = sessionStorage.getItem(PENDING_SHARE_KEY);
+      navigate(pendingKey ? `/join/${pendingKey}` : '/');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Erro ao criar conta.');
     } finally {
@@ -32,14 +34,19 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4 relative overflow-hidden">
+      <img
+        src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1600&q=60"
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover opacity-10"
+      />
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8 relative z-10">
         <div className="flex flex-col items-center mb-8">
           <div className="bg-indigo-600 text-white p-3 rounded-full mb-3">
             <MapPin size={28} />
           </div>
           <h1 className="text-2xl font-bold text-gray-800">Criar Conta</h1>
-          <p className="text-gray-500 text-sm mt-1">ViagemEmGrupo</p>
+          <p className="text-gray-500 text-sm mt-1">Vai Junto ✈️</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

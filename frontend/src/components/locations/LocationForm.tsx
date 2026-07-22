@@ -61,14 +61,14 @@ export default function LocationForm({ groupId, onClose }: LocationFormProps) {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">Adicionar Local</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-4 sm:p-5 space-y-4">
           {/* URL Input */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Link do Google Maps</label>
@@ -136,7 +136,7 @@ export default function LocationForm({ groupId, onClose }: LocationFormProps) {
               {/* Type */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Tipo de local</label>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   {(Object.entries(TYPE_CONFIG) as [LocationType, typeof TYPE_CONFIG[LocationType]][]).map(([key, cfg]) => (
                     <button
                       key={key}
@@ -153,7 +153,7 @@ export default function LocationForm({ groupId, onClose }: LocationFormProps) {
               </div>
 
               {/* Date, Time, Duration */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
                   <input type="date" className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -195,7 +195,7 @@ export default function LocationForm({ groupId, onClose }: LocationFormProps) {
           )}
         </div>
 
-        <div className="p-5 border-t border-gray-100 flex gap-2">
+        <div className="p-4 sm:p-5 border-t border-gray-100 flex gap-2">
           <button onClick={onClose} className="flex-1 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50">
             Cancelar
           </button>

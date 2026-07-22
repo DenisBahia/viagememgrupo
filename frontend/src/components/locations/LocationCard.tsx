@@ -1,19 +1,28 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateLocation, deleteLocation } from '../../services/api';
+import { updateLocation, deleteLocation, voteLocation } from '../../services/api';
 import type { Location, Priority, LocationType } from '../../types';
 import { PRIORITY_CONFIG, TYPE_CONFIG } from '../ui/constants';
+import EditLocationModal from './EditLocationModal';
+import VotersTooltip from './VotersTooltip';
 import toast from 'react-hot-toast';
-import { Star, Clock, Calendar, ExternalLink, Trash2, ChevronDown, Check } from 'lucide-react';
+import { Star, Clock, Calendar, ExternalLink, Trash2, ChevronDown, Check, Pencil, GripVertical, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface LocationCardProps {
   location: Location;
   groupId: string;
+  dragHandleProps?: {
+    attributes?: Record<string, any>;
+    listeners?: Record<string, any>;
+    setActivatorNodeRef?: (el: HTMLElement | null) => void;
+  };
+  isDragging?: boolean;
 }
 
-export default function LocationCard({ location: loc, groupId }: LocationCardProps) {
+export default function LocationCard({ location: loc, groupId, dragHandleProps, isDragging }: LocationCardProps) {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Location>) => updateLocation(loc.id, data as any),
@@ -30,18 +39,42 @@ export default function LocationCard({ location: loc, groupId }: LocationCardPro
     onError: () => toast.error('Erro ao remover.')
   });
 
+  const voteMutation = useMutation({
+    mutationFn: (isLike: boolean) => voteLocation(loc.id, isLike),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['locations', groupId] }),
+    onError: () => toast.error('Erro ao registrar seu voto.')
+  });
+
   const pCfg = PRIORITY_CONFIG[loc.priority];
   const tCfg = TYPE_CONFIG[loc.type];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition">
+    <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition ${isDragging ? 'opacity-50 shadow-lg' : ''}`}>
       <div className="p-3">
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-1.5">
+          {dragHandleProps && (
+            <button
+              ref={dragHandleProps.setActivatorNodeRef}
+              {...(dragHandleProps.attributes ?? {})}
+              {...(dragHandleProps.listeners ?? {})}
+              className="text-gray-300 hover:text-gray-500 flex-shrink-0 mt-1 cursor-grab active:cursor-grabbing touch-none"
+              title="Arrastar para outro dia"
+            >
+              <GripVertical size={15} />
+            </button>
+          )}
           <span className="text-xl flex-shrink-0 mt-0.5">{tCfg.emoji}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-1">
               <h3 className="font-semibold text-gray-800 text-sm leading-tight truncate">{loc.name}</h3>
               <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => setShowEdit(true)}
+                  className="text-gray-300 hover:text-indigo-500 p-0.5 transition"
+                  title="Editar local"
+                >
+                  <Pencil size={13} />
+                </button>
                 <button
                   onClick={() => { if (confirm('Remover este local?')) deleteMutation.mutate(); }}
                   className="text-gray-300 hover:text-red-500 p-0.5 transition"
@@ -81,6 +114,38 @@ export default function LocationCard({ location: loc, groupId }: LocationCardPro
                   <Clock size={9} /> {loc.durationHours}h
                 </span>
               )}
+            </div>
+
+            {/* Like / dislike */}
+            <div className="flex items-center gap-1.5 mt-1.5" onClick={e => e.stopPropagation()}>
+              <VotersTooltip names={loc.likedByNames}>
+                <button
+                  onClick={() => voteMutation.mutate(true)}
+                  disabled={voteMutation.isPending}
+                  title="Curtir"
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium border transition ${
+                    loc.myVote === true
+                      ? 'border-green-300 bg-green-50 text-green-700'
+                      : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-green-600'
+                  }`}
+                >
+                  <ThumbsUp size={11} fill={loc.myVote === true ? 'currentColor' : 'none'} /> {loc.likeCount}
+                </button>
+              </VotersTooltip>
+              <VotersTooltip names={loc.dislikedByNames}>
+                <button
+                  onClick={() => voteMutation.mutate(false)}
+                  disabled={voteMutation.isPending}
+                  title="Não curtir"
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium border transition ${
+                    loc.myVote === false
+                      ? 'border-red-300 bg-red-50 text-red-700'
+                      : 'border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-red-600'
+                  }`}
+                >
+                  <ThumbsDown size={11} fill={loc.myVote === false ? 'currentColor' : 'none'} /> {loc.dislikeCount}
+                </button>
+              </VotersTooltip>
             </div>
           </div>
         </div>
@@ -150,6 +215,10 @@ export default function LocationCard({ location: loc, groupId }: LocationCardPro
             <ExternalLink size={11} /> Abrir no Google Maps
           </a>
         </div>
+      )}
+
+      {showEdit && (
+        <EditLocationModal location={loc} groupId={groupId} onClose={() => setShowEdit(false)} />
       )}
     </div>
   );
