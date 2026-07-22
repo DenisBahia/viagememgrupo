@@ -28,6 +28,62 @@ npm run dev
 
 > O frontend faz proxy de `/api` para o backend em `localhost:5000` automaticamente.
 
+## Deploy com Docker no Railway (FE + BE em 1 container)
+
+Este repositório agora inclui um `Dockerfile` na raiz que:
+
+- builda o frontend (`frontend`) com Vite
+- publica o backend (`Backend`) com .NET
+- copia o build do frontend para `wwwroot` do backend
+- sobe tudo em uma URL/porta no mesmo container
+
+### 1. Suba os arquivos para o GitHub
+
+```bash
+git add Dockerfile .dockerignore README.md
+git commit -m "add docker deploy for railway"
+git push origin main
+```
+
+### 2. Criar o projeto no Railway
+
+1. Railway -> **New Project** -> **Deploy from GitHub repo**
+2. Selecione este repositório
+3. Railway detecta e usa o `Dockerfile` da raiz
+
+### 3. Adicionar banco PostgreSQL no Railway
+
+1. No mesmo projeto: **New** -> **Database** -> **PostgreSQL**
+2. Copie a URL de conexão (ou use as variáveis fornecidas pelo plugin)
+
+### 4. Configurar variáveis de ambiente do serviço web
+
+Defina no serviço da aplicação:
+
+- `ConnectionStrings__DefaultConnection` = string de conexão PostgreSQL
+- `Jwt__Secret` = segredo forte (32+ caracteres)
+- `Jwt__Issuer` = `ViagemEmGrupo`
+- `Jwt__Audience` = `ViagemEmGrupoUsers`
+- `GoogleMaps__ApiKey` = sua chave Google Maps
+- `VITE_GOOGLE_MAPS_API_KEY` = mesma chave (usada no build do frontend)
+
+> No .NET, `__` (duplo underscore) mapeia para `:` no `appsettings`.
+
+### 5. Deploy e validação
+
+Após salvar as variáveis, o Railway dispara novo deploy.
+
+Teste na URL pública:
+
+- abrir `/` (frontend)
+- fazer login/cadastro
+- validar chamadas `/api/*`
+- abrir mapa e confirmar carregamento da Google Maps API
+
+### 6. Deploy contínuo
+
+Cada `git push` para a branch conectada dispara novo deploy automaticamente.
+
 ### Configurações
 
 - **Banco de dados**: configurado em `Backend/appsettings.json`

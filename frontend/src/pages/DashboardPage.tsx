@@ -16,7 +16,7 @@ import {
 
 export default function DashboardPage() {
   const { groupId } = useParams<{ groupId: string }>();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const [showForm, setShowForm] = useState(false);

@@ -4,7 +4,7 @@ import { updateLocation, deleteLocation } from '../../services/api';
 import type { Location, Priority, LocationType } from '../../types';
 import { PRIORITY_CONFIG, TYPE_CONFIG } from '../ui/constants';
 import toast from 'react-hot-toast';
-import { Star, Clock, Calendar, ExternalLink, Trash2, ChevronDown, Check, X } from 'lucide-react';
+import { Star, Clock, Calendar, ExternalLink, Trash2, ChevronDown, Check } from 'lucide-react';
 
 interface LocationCardProps {
   location: Location;
