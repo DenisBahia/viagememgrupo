@@ -5,8 +5,9 @@ import type { Location, Priority, LocationType } from '../../types';
 import { PRIORITY_CONFIG, TYPE_CONFIG } from '../ui/constants';
 import EditLocationModal from './EditLocationModal';
 import VotersTooltip from './VotersTooltip';
+import AiTipsModal from './AiTipsModal';
 import toast from 'react-hot-toast';
-import { Star, Clock, Calendar, ExternalLink, Trash2, ChevronDown, Check, Pencil, GripVertical, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Star, Clock, Calendar, ExternalLink, Trash2, ChevronDown, Check, Pencil, GripVertical, ThumbsUp, ThumbsDown, Sparkles } from 'lucide-react';
 
 interface LocationCardProps {
   location: Location;
@@ -23,6 +24,7 @@ export default function LocationCard({ location: loc, groupId, dragHandleProps, 
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showAiTips, setShowAiTips] = useState(false);
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Location>) => updateLocation(loc.id, data as any),
@@ -68,6 +70,13 @@ export default function LocationCard({ location: loc, groupId, dragHandleProps, 
             <div className="flex items-start justify-between gap-1">
               <h3 className="font-semibold text-gray-800 text-sm leading-tight truncate">{loc.name}</h3>
               <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => setShowAiTips(true)}
+                  className="text-indigo-300 hover:text-indigo-600 p-0.5 transition"
+                  title="Dicas com IA (horários, tempo de visita, reservas...)"
+                >
+                  <Sparkles size={13} />
+                </button>
                 <button
                   onClick={() => setShowEdit(true)}
                   className="text-gray-300 hover:text-indigo-500 p-0.5 transition"
@@ -219,6 +228,10 @@ export default function LocationCard({ location: loc, groupId, dragHandleProps, 
 
       {showEdit && (
         <EditLocationModal location={loc} groupId={groupId} onClose={() => setShowEdit(false)} />
+      )}
+
+      {showAiTips && (
+        <AiTipsModal location={loc} onClose={() => setShowAiTips(false)} />
       )}
     </div>
   );

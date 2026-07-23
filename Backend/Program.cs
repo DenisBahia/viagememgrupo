@@ -10,6 +10,9 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Optional local overrides for secrets (kept out of git)
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 // Database
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -37,6 +40,7 @@ builder.Services.AddControllers();
 // Services
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<GoogleMapsService>();
+builder.Services.AddScoped<GeminiService>();
 
 // HttpClient for Google Maps (with redirect for goo.gl)
 builder.Services.AddHttpClient();

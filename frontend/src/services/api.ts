@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type {
   AuthResponse, TravelGroup, Location,
-  ParsedPlace, CreateLocationRequest, UpdateLocationRequest
+  ParsedPlace, CreateLocationRequest, UpdateLocationRequest, AiTips
 } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
@@ -78,4 +78,7 @@ export const exportRoute = (groupId: string, dayLabel?: string) =>
   api.get<{ url: string }>(`/groups/${groupId}/export-route`, {
     params: dayLabel ? { dayLabel } : {}
   }).then(r => r.data);
+
+export const getLocationAiTips = (id: string) =>
+  api.get<AiTips>(`/locations/${id}/ai-tips`).then(r => r.data);
 

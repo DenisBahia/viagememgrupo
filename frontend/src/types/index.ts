@@ -72,6 +72,12 @@ export interface ParsedPlace {
   suggestedType: LocationType;
 }
 
+export interface AiTips {
+  content: string;
+  generatedAt: string;
+  fromCache: boolean;
+}
+
 export interface CreateLocationRequest {
   googleMapsUrl: string;
   priority: Priority;

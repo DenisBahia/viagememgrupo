@@ -6,3 +6,5 @@ riderModule.iml
 .idea/
 .DS_Store
 frontend/node_modules/
+Backend/appsettings.Local.json
+Backend/appsettings.*.local.json

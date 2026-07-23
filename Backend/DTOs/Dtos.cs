@@ -84,3 +84,6 @@ public record ParsedPlaceDto(
     string? PhotoUrl,
     string SuggestedType);
 
+// AI (Gemini) tips
+public record AiTipsDto(string Content, DateTime GeneratedAt, bool FromCache);
+

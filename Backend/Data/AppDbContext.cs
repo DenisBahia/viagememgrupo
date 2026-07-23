@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<LocationVote> LocationVotes => Set<LocationVote>();
+    public DbSet<LocationAiTip> LocationAiTips => Set<LocationAiTip>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,6 +60,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(v => v.User)
             .WithMany()
             .HasForeignKey(v => v.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<LocationAiTip>()
+            .HasIndex(t => t.LocationId)
+            .IsUnique();
+
+        modelBuilder.Entity<LocationAiTip>()
+            .HasOne(t => t.Location)
+            .WithOne()
+            .HasForeignKey<LocationAiTip>(t => t.LocationId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

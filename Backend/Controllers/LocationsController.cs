@@ -12,7 +12,7 @@ namespace Backend.Controllers;
 [ApiController]
 [Route("api")]
 [Authorize]
-public class LocationsController(AppDbContext db, GoogleMapsService mapsService) : ControllerBase
+public class LocationsController(AppDbContext db, GoogleMapsService mapsService, GeminiService geminiService) : ControllerBase
 {
     private Guid UserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -204,6 +204,39 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService)
             url = $"https://www.google.com/maps/dir/?api=1&origin={origin}&destination={destination}&waypoints={waypointsStr}";
 
         return Ok(new { url });
+    }
+
+    // AI (Gemini) tips: best time to visit, duration, what to eat, reservation/ticket needs, etc.
+    // Cached in DB per location so we only call Gemini once per place.
+    [HttpGet("locations/{id}/ai-tips")]
+    public async Task<ActionResult<AiTipsDto>> GetAiTips(Guid id)
+    {
+        var location = await db.Locations.FindAsync(id);
+        if (location == null) return NotFound();
+        if (!await IsMemberAsync(location.GroupId)) return Forbid();
+
+        var cached = await db.LocationAiTips.FirstOrDefaultAsync(t => t.LocationId == id);
+        if (cached != null)
+            return Ok(new AiTipsDto(cached.Content, cached.CreatedAt, true));
+
+        if (!geminiService.IsConfigured)
+            return StatusCode(503, new { message = "Integração com Gemini AI não está configurada no servidor." });
+
+        string content;
+        try
+        {
+            content = await geminiService.GetTipsAsync(location);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(502, new { message = "Não foi possível buscar dicas com a IA agora. Tente novamente em instantes.", detail = ex.Message });
+        }
+
+        var tip = new LocationAiTip { LocationId = id, Content = content };
+        db.LocationAiTips.Add(tip);
+        await db.SaveChangesAsync();
+
+        return Ok(new AiTipsDto(tip.Content, tip.CreatedAt, false));
     }
 
     private LocationDto MapToDto(Location l) => new(
