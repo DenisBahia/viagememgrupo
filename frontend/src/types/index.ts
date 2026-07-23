@@ -20,6 +20,8 @@ export interface TravelGroup {
   id: string;
   name: string;
   destination: string;
+  destinationLat?: number | null;
+  destinationLng?: number | null;
   startDate?: string;
   endDate?: string;
   shareKey: string;

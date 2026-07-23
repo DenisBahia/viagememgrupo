@@ -99,7 +99,9 @@ export default function DashboardPage() {
 
   const mapCenter = filtered.length > 0
     ? { lat: filtered[0].lat, lng: filtered[0].lng }
-    : undefined;
+    : (groupInfo?.destinationLat != null && groupInfo?.destinationLng != null
+      ? { lat: groupInfo.destinationLat, lng: groupInfo.destinationLng }
+      : undefined);
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">

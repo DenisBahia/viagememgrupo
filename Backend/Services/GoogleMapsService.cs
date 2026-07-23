@@ -8,6 +8,31 @@ public class GoogleMapsService(IConfiguration config, IHttpClientFactory httpCli
 {
     private readonly string _apiKey = config["GoogleMaps:ApiKey"]!;
 
+    public async Task<(double lat, double lng)?> GeocodeAsync(string address)
+    {
+        if (string.IsNullOrWhiteSpace(address)) return null;
+
+        try
+        {
+            var client = httpClientFactory.CreateClient();
+            var encoded = Uri.EscapeDataString(address);
+            var requestUrl = $"https://maps.googleapis.com/maps/api/geocode/json?address={encoded}&key={_apiKey}";
+
+            var response = await client.GetStringAsync(requestUrl);
+            var json = JsonDocument.Parse(response);
+            var results = json.RootElement.GetProperty("results");
+
+            if (results.GetArrayLength() == 0) return null;
+
+            var loc = results[0].GetProperty("geometry").GetProperty("location");
+            return (loc.GetProperty("lat").GetDouble(), loc.GetProperty("lng").GetDouble());
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<ParsedPlaceDto?> ParseMapsUrlAsync(string url)
     {
         // Expand shortened URLs (maps.app.goo.gl)

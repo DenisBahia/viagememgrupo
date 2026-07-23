@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
+using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ namespace Backend.Controllers;
 [ApiController]
 [Route("api/groups")]
 [Authorize]
-public class GroupsController(AppDbContext db) : ControllerBase
+public class GroupsController(AppDbContext db, GoogleMapsService mapsService) : ControllerBase
 {
     private Guid UserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -39,6 +40,13 @@ public class GroupsController(AppDbContext db) : ControllerBase
             StartDate = req.StartDate,
             EndDate = req.EndDate
         };
+
+        var coords = await mapsService.GeocodeAsync(req.Destination);
+        if (coords != null)
+        {
+            group.DestinationLat = coords.Value.lat;
+            group.DestinationLng = coords.Value.lng;
+        }
 
         db.TravelGroups.Add(group);
         db.GroupMembers.Add(new GroupMember { UserId = UserId, GroupId = group.Id, Role = "owner" });
@@ -99,6 +107,12 @@ public class GroupsController(AppDbContext db) : ControllerBase
         if (group == null) return NotFound();
 
         group.Name = req.Name;
+        if (group.Destination != req.Destination)
+        {
+            var newCoords = await mapsService.GeocodeAsync(req.Destination);
+            group.DestinationLat = newCoords?.lat;
+            group.DestinationLng = newCoords?.lng;
+        }
         group.Destination = req.Destination;
         group.StartDate = req.StartDate;
         group.EndDate = req.EndDate;
@@ -131,7 +145,7 @@ public class GroupsController(AppDbContext db) : ControllerBase
             .ThenBy(m => m.User.Name)
             .Select(m => new GroupMemberDto(m.UserId, m.User.Name, m.User.Email, m.Role))
             .ToList();
-        return new GroupDto(g.Id, g.Name, g.Destination, g.StartDate, g.EndDate,
+        return new GroupDto(g.Id, g.Name, g.Destination, g.DestinationLat, g.DestinationLng, g.StartDate, g.EndDate,
             g.ShareKey, owner?.Name ?? "", g.Members.Count, g.CreatedAt, isOwner, members);
     }
 }

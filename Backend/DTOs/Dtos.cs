@@ -13,6 +13,7 @@ public record JoinGroupRequest(string ShareKey);
 public record GroupMemberDto(Guid Id, string Name, string Email, string Role);
 public record GroupDto(
     Guid Id, string Name, string Destination,
+    double? DestinationLat, double? DestinationLng,
     DateTime? StartDate, DateTime? EndDate,
     string ShareKey, string OwnerName, int MemberCount, DateTime CreatedAt,
     bool IsOwner, List<GroupMemberDto> Members);
