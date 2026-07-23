@@ -46,6 +46,9 @@ public record UpdateLocationRequest(
     bool ClearNotes = false,
     bool ClearDayLabel = false);
 
+// Drag & drop reordering of locations within a day
+public record ReorderLocationsRequest(string? DayLabel, List<Guid> OrderedLocationIds);
+
 public record LocationDto(
     Guid Id,
     string Name,
@@ -64,6 +67,7 @@ public record LocationDto(
     string? Notes,
     double? GoogleRating,
     string? DayLabel,
+    int? DayOrder,
     string? PhotoUrl,
     string AddedByName,
     DateTime CreatedAt,
@@ -72,6 +76,7 @@ public record LocationDto(
     bool? MyVote,
     List<string> LikedByNames,
     List<string> DislikedByNames);
+
 
 public record VoteRequest(bool IsLike);
 
@@ -87,4 +92,36 @@ public record ParsedPlaceDto(
 
 // AI (Gemini) tips
 public record AiTipsDto(string Content, DateTime GeneratedAt, bool FromCache);
+
+// Itinerary suggestion
+public record SuggestItineraryRequest(List<Guid>? LocationIds);
+
+public record ItineraryStopDto(
+    Guid LocationId,
+    string Name,
+    string Type,
+    int Order,
+    string SuggestedTime,
+    double SuggestedDurationHours,
+    double TravelKmFromPrevious,
+    int TravelMinutesFromPrevious);
+
+public record ItineraryDayDto(
+    int DayIndex,
+    string DayLabel,
+    DateTime? Date,
+    List<ItineraryStopDto> Stops,
+    double TotalDurationHours,
+    double TotalDistanceKm,
+    string Summary);
+
+public record ItineraryAssignmentDto(Guid LocationId, string DayLabel, int Order, DateTime? VisitDate, string? VisitTime);
+public record ApplyItineraryRequest(List<ItineraryAssignmentDto> Assignments);
+
+public record ItinerarySuggestionResponseDto(List<ItineraryDayDto> Days, bool FromCache, DateTime GeneratedAt);
+
+
+// Multi-day route export
+public record ExportRoutesRequest(List<Guid>? LocationIds);
+public record ExportRouteDto(string DayLabel, string Url, int StopsCount);
 

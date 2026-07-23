@@ -23,3 +23,24 @@ export const PRIORITY_PIN_COLORS: Record<Priority, string> = {
   maybe: '#9ca3af',
 };
 
+// Distinct colors used to tell each day's route/pins apart on the map.
+export const DAY_COLORS: string[] = [
+  '#4f46e5', // indigo
+  '#dc2626', // red
+  '#0891b2', // cyan
+  '#ca8a04', // amber
+  '#db2777', // pink
+  '#16a34a', // green
+  '#7c3aed', // violet
+  '#ea580c', // orange
+  '#0d9488', // teal
+  '#65a30d', // lime
+];
+
+export function getDayColor(dayLabel: string, allDayLabels: string[]): string {
+  const idx = allDayLabels.indexOf(dayLabel);
+  if (idx === -1) return '#6b7280';
+  return DAY_COLORS[idx % DAY_COLORS.length];
+}
+
+

@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<LocationVote> LocationVotes => Set<LocationVote>();
     public DbSet<LocationAiTip> LocationAiTips => Set<LocationAiTip>();
+    public DbSet<ItineraryCache> ItineraryCaches => Set<ItineraryCache>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +71,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(t => t.Location)
             .WithOne()
             .HasForeignKey<LocationAiTip>(t => t.LocationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ItineraryCache>()
+            .HasIndex(c => new { c.GroupId, c.RequestHash })
+            .IsUnique();
+
+        modelBuilder.Entity<ItineraryCache>()
+            .HasOne<TravelGroup>()
+            .WithMany()
+            .HasForeignKey(c => c.GroupId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

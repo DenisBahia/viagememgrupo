@@ -26,6 +26,10 @@ public class Location
     public string? DayLabel { get; set; }
     public string? PhotoUrl { get; set; }
 
+    // Manual position of this location within its day (drag & drop reordering).
+    // Null means "use the default date/time-based ordering".
+    public int? DayOrder { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Guid GroupId { get; set; }

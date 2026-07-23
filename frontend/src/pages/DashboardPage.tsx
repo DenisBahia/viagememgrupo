@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLocations, exportRoute, getGroups, updateGroup } from '../services/api';
+import { getLocations, getGroups, updateGroup } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import TravelMap from '../components/map/TravelMap';
 import LocationForm from '../components/locations/LocationForm';
 import LocationsByDay from '../components/locations/LocationsByDay';
+import ItineraryModal from '../components/locations/ItineraryModal';
+import ExportRoutesModal from '../components/locations/ExportRoutesModal';
 import type { Location, Priority, LocationType } from '../types';
 import { PRIORITY_CONFIG, TYPE_CONFIG } from '../components/ui/constants';
 import toast from 'react-hot-toast';
 import {
   MapPin, Plus, ArrowLeft, Share2, Copy, Route,
-  LogOut, Filter, Pencil, X, Link as LinkIcon, List, Map as MapIcon
+  LogOut, Filter, Pencil, X, Link as LinkIcon, List, Map as MapIcon,
+  Sparkles, Waypoints
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -23,12 +26,16 @@ export default function DashboardPage() {
   const [showForm, setShowForm] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showItinerary, setShowItinerary] = useState(false);
+  const [showExportRoutes, setShowExportRoutes] = useState(false);
+  const [showRoutesOnMap, setShowRoutesOnMap] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', destination: '', startDate: '', endDate: '' });
   const [filterDay, setFilterDay] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<Priority | ''>('');
   const [filterType, setFilterType] = useState<LocationType | ''>('');
   const [mobileView, setMobileView] = useState<'list' | 'map'>('map');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
 
 
   const { data: locations = [], isLoading } = useQuery({
@@ -76,13 +83,12 @@ export default function DashboardPage() {
     return true;
   });
 
-  const handleExport = async () => {
-    try {
-      const { url } = await exportRoute(groupId!, filterDay || undefined);
-      window.open(url, '_blank');
-    } catch {
-      toast.error('Adicione pelo menos 2 locais para exportar a rota.');
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      toast.error('Nenhum local encontrado com os filtros atuais.');
+      return;
     }
+    setShowExportRoutes(true);
   };
 
   const handleCopyKey = (key: string) => {
@@ -141,11 +147,18 @@ export default function DashboardPage() {
             <Share2 size={13} /> <span className="hidden sm:inline">Compartilhar</span>
           </button>
           <button
+            onClick={() => setShowItinerary(true)}
+            className="flex items-center gap-1 text-xs px-2.5 sm:px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            title="Sugerir roteiros por dia"
+          >
+            <Sparkles size={13} /> <span className="hidden sm:inline">Sugerir Roteiros</span>
+          </button>
+          <button
             onClick={handleExport}
             className="flex items-center gap-1 text-xs px-2.5 sm:px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            title="Exportar rota"
+            title="Exportar rotas"
           >
-            <Route size={13} /> <span className="hidden sm:inline">Exportar Rota</span>
+            <Route size={13} /> <span className="hidden sm:inline">Exportar Rotas</span>
           </button>
           <button
             onClick={() => setShowForm(true)}
@@ -159,6 +172,7 @@ export default function DashboardPage() {
           </button>
         </div>
       </header>
+
 
       {/* Mobile view toggle */}
       <div className="sm:hidden flex border-b border-gray-200 bg-white flex-shrink-0">
@@ -215,6 +229,15 @@ export default function DashboardPage() {
               )}
             </select>
           </div>
+          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              className="w-3.5 h-3.5 accent-indigo-600"
+              checked={showRoutesOnMap}
+              onChange={e => setShowRoutesOnMap(e.target.checked)}
+            />
+            <Waypoints size={12} /> Mostrar rotas por dia no mapa
+          </label>
           {groupInfo?.isOwner && (
             <button
               onClick={openEdit}
@@ -265,6 +288,15 @@ export default function DashboardPage() {
               </select>
             </div>
             <p className="text-xs text-gray-400">{filtered.length} local(is) encontrado(s)</p>
+            <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer pt-1">
+              <input
+                type="checkbox"
+                className="w-3.5 h-3.5 accent-indigo-600"
+                checked={showRoutesOnMap}
+                onChange={e => setShowRoutesOnMap(e.target.checked)}
+              />
+              <Waypoints size={12} /> Mostrar rotas por dia no mapa
+            </label>
           </div>
 
           {/* Location list grouped by day */}
@@ -275,12 +307,31 @@ export default function DashboardPage() {
 
         {/* Map */}
         <main className={`flex-1 relative ${mobileView === 'map' ? 'block' : 'hidden sm:block'}`}>
-          <TravelMap locations={filtered} center={mapCenter} groupId={groupId} />
+          <TravelMap locations={filtered} center={mapCenter} groupId={groupId} showRoutes={showRoutesOnMap} />
         </main>
       </div>
 
       {/* Add location modal */}
       {showForm && <LocationForm groupId={groupId!} onClose={() => setShowForm(false)} />}
+
+      {/* Suggested itinerary modal */}
+      {showItinerary && (
+        <ItineraryModal
+          groupId={groupId!}
+          locations={filtered}
+          onClose={() => setShowItinerary(false)}
+          onApplied={() => setShowRoutesOnMap(true)}
+        />
+      )}
+
+      {/* Multi-day route export modal */}
+      {showExportRoutes && (
+        <ExportRoutesModal
+          groupId={groupId!}
+          locationIds={filtered.map((l: Location) => l.id)}
+          onClose={() => setShowExportRoutes(false)}
+        />
+      )}
 
       {/* Edit group modal */}
       {showEdit && (

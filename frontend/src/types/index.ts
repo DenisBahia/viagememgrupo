@@ -53,6 +53,7 @@ export interface Location {
   notes?: string;
   googleRating?: number;
   dayLabel?: string;
+  dayOrder?: number | null;
   photoUrl?: string;
   addedByName: string;
   createdAt: string;
@@ -108,4 +109,46 @@ export interface UpdateLocationRequest {
   clearNotes?: boolean;
   clearDayLabel?: boolean;
 }
+
+export interface ItineraryStop {
+  locationId: string;
+  name: string;
+  type: LocationType;
+  order: number;
+  suggestedTime: string;
+  suggestedDurationHours: number;
+  travelKmFromPrevious: number;
+  travelMinutesFromPrevious: number;
+}
+
+export interface ItineraryDay {
+  dayIndex: number;
+  dayLabel: string;
+  date?: string | null;
+  stops: ItineraryStop[];
+  totalDurationHours: number;
+  totalDistanceKm: number;
+  summary: string;
+}
+
+export interface ItineraryAssignment {
+  locationId: string;
+  dayLabel: string;
+  order: number;
+  visitDate?: string | null;
+  visitTime?: string | null;
+}
+
+export interface ItinerarySuggestion {
+  days: ItineraryDay[];
+  fromCache: boolean;
+  generatedAt: string;
+}
+
+export interface ExportRoute {
+  dayLabel: string;
+  url: string;
+  stopsCount: number;
+}
+
 

@@ -1,10 +1,11 @@
-import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps';
-import { useState } from 'react';
+import { APIProvider, Map as GoogleMap, Marker, Polyline, InfoWindow } from '@vis.gl/react-google-maps';
+import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Location } from '../../types';
-import { PRIORITY_PIN_COLORS, TYPE_CONFIG, PRIORITY_CONFIG } from '../ui/constants';
+import { PRIORITY_PIN_COLORS, TYPE_CONFIG, PRIORITY_CONFIG, getDayColor } from '../ui/constants';
 import { voteLocation } from '../../services/api';
 import VotersTooltip from '../locations/VotersTooltip';
+import { buildPinIcon } from './mapIcons';
 import toast from 'react-hot-toast';
 import { Star, Clock, Calendar, ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react';
 
@@ -12,11 +13,13 @@ interface TravelMapProps {
   locations: Location[];
   center?: { lat: number; lng: number };
   groupId?: string;
+  // When true, locations are grouped/colored by dayLabel and connected with colored route lines.
+  showRoutes?: boolean;
 }
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
 
-export default function TravelMap({ locations, center, groupId }: TravelMapProps) {
+export default function TravelMap({ locations, center, groupId, showRoutes = false }: TravelMapProps) {
   const [selected, setSelected] = useState<Location | null>(null);
   const qc = useQueryClient();
 
@@ -35,13 +38,29 @@ export default function TravelMap({ locations, center, groupId }: TravelMapProps
       : { lat: 40.4168, lng: -3.7038 } // Madrid as default
   );
 
+  // Group locations by day (preserving the incoming order, which the API already sorts by
+  // visit date/time) so we can draw one colored route per day and number the stops.
+  const { dayLabels, dayGroups, orderByLocationId } = useMemo(() => {
+    const groups = new Map<string, Location[]>();
+    for (const loc of locations) {
+      if (!loc.dayLabel) continue;
+      const arr = groups.get(loc.dayLabel) ?? [];
+      arr.push(loc);
+      groups.set(loc.dayLabel, arr);
+    }
+    const labels = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true }));
+    const orderMap = new Map<string, number>();
+    for (const label of labels) {
+      groups.get(label)!.forEach((loc, idx) => orderMap.set(loc.id, idx + 1));
+    }
+    return { dayLabels: labels, dayGroups: groups, orderByLocationId: orderMap };
+  }, [locations]);
+
   return (
     <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-      <Map
+      <GoogleMap
         defaultCenter={defaultCenter}
         defaultZoom={13}
-        mapId="viagememgrupo-map"
-        renderingType="RASTER"
         style={{ width: '100%', height: '100%' }}
         gestureHandling="greedy"
         disableDefaultUI={false}
@@ -52,28 +71,57 @@ export default function TravelMap({ locations, center, groupId }: TravelMapProps
         styles={[
           // Hide Google's default points-of-interest icons/labels so only
           // the locations added to the group show up on the map.
+          // NOTE: this only works because we intentionally do NOT set a `mapId` on this
+          // <Map>. Google ignores the `styles` prop whenever a Map ID is present (styling
+          // for a Map ID must be configured in the Cloud Console instead), which used to
+          // let default restaurant/attraction/etc. POI icons leak through.
           { featureType: 'poi', stylers: [{ visibility: 'off' }] },
           { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.attraction', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.government', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.park', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.place_of_worship', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.school', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.sports_complex', stylers: [{ visibility: 'off' }] },
           { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
           { featureType: 'transit.station', stylers: [{ visibility: 'off' }] },
         ]}
       >
-        {locations.map(loc => (
-          <AdvancedMarker
-            key={loc.id}
-            position={{ lat: loc.lat, lng: loc.lng }}
-            onClick={() => setSelected(loc)}
-            title={loc.name}
-          >
-            <Pin
-              background={PRIORITY_PIN_COLORS[loc.priority]}
-              borderColor="white"
-              glyphColor="white"
-              glyph={TYPE_CONFIG[loc.type]?.emoji ?? '📍'}
-              scale={selected?.id === loc.id ? 1.3 : 1}
+        {/* One colored polyline per day, connecting stops in visit order */}
+        {showRoutes && dayLabels.map(label => {
+          const stops = dayGroups.get(label)!;
+          if (stops.length < 2) return null;
+          return (
+            <Polyline
+              key={label}
+              path={stops.map(s => ({ lat: s.lat, lng: s.lng }))}
+              strokeColor={getDayColor(label, dayLabels)}
+              strokeOpacity={0.85}
+              strokeWeight={4}
             />
-          </AdvancedMarker>
-        ))}
+          );
+        })}
+
+        {locations.map(loc => {
+          const dayColor = showRoutes && loc.dayLabel ? getDayColor(loc.dayLabel, dayLabels) : undefined;
+          const color = dayColor ?? PRIORITY_PIN_COLORS[loc.priority];
+          const order = showRoutes ? orderByLocationId.get(loc.id) : undefined;
+          return (
+            <Marker
+              key={loc.id}
+              position={{ lat: loc.lat, lng: loc.lng }}
+              onClick={() => setSelected(loc)}
+              title={loc.name}
+              icon={buildPinIcon(color, TYPE_CONFIG[loc.type]?.emoji ?? '📍', {
+                scale: selected?.id === loc.id ? 1.25 : 1,
+                order,
+              })}
+              zIndex={selected?.id === loc.id ? 999 : undefined}
+            />
+          );
+        })}
+
 
         {selected && (
           <InfoWindow
@@ -168,7 +216,7 @@ export default function TravelMap({ locations, center, groupId }: TravelMapProps
             </div>
           </InfoWindow>
         )}
-      </Map>
+      </GoogleMap>
     </APIProvider>
   );
 }

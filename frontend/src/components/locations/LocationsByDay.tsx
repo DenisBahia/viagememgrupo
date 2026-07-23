@@ -1,6 +1,8 @@
-import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, useDroppable, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateLocation } from '../../services/api';
+import { updateLocation, reorderLocations } from '../../services/api';
 import type { Location } from '../../types';
 import LocationCard from './LocationCard';
 import toast from 'react-hot-toast';
@@ -15,14 +17,18 @@ interface LocationsByDayProps {
   isLoading: boolean;
 }
 
-function DraggableCard({ loc, groupId }: { loc: Location; groupId: string }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
+const dayKeyOf = (loc: Location) => loc.dayLabel || NO_DAY;
+
+function SortableCard({ loc, groupId }: { loc: Location; groupId: string }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: loc.id,
   });
 
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 30 }
-    : undefined;
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    zIndex: isDragging ? 30 : undefined,
+  };
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -58,13 +64,15 @@ function DayGroup({ dayKey, label, locations, groupId }: { dayKey: string; label
         <ChevronDown size={13} className={`text-gray-400 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
       </button>
       {!collapsed && (
-        <div className="space-y-2 pb-2 min-h-[8px]">
-          {locations.length === 0 ? (
-            <p className="text-xs text-gray-300 italic px-1 py-2">Arraste locais para aqui</p>
-          ) : (
-            locations.map(loc => <DraggableCard key={loc.id} loc={loc} groupId={groupId} />)
-          )}
-        </div>
+        <SortableContext items={locations.map(l => l.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2 pb-2 min-h-[8px]">
+            {locations.length === 0 ? (
+              <p className="text-xs text-gray-300 italic px-1 py-2">Arraste locais para aqui</p>
+            ) : (
+              locations.map(loc => <SortableCard key={loc.id} loc={loc} groupId={groupId} />)
+            )}
+          </div>
+        </SortableContext>
       )}
     </div>
   );
@@ -76,10 +84,14 @@ export default function LocationsByDay({ locations, groupId, isLoading }: Locati
   const moveMutation = useMutation({
     mutationFn: ({ id, dayLabel }: { id: string; dayLabel: string | null }) =>
       updateLocation(id, dayLabel ? { dayLabel } : { clearDayLabel: true }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['locations', groupId] });
-    },
-    onError: () => toast.error('Erro ao mover local.')
+    onError: () => toast.error('Erro ao mover local.'),
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: ({ dayLabel, orderedIds }: { dayLabel: string | null; orderedIds: string[] }) =>
+      reorderLocations(groupId, dayLabel, orderedIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['locations', groupId] }),
+    onError: () => toast.error('Erro ao reordenar locais.'),
   });
 
   const sensors = useSensors(
@@ -89,7 +101,7 @@ export default function LocationsByDay({ locations, groupId, isLoading }: Locati
   // Sort day labels alphabetically; "sem dia" group always last.
   const dayOrder: string[] = [];
   for (const l of locations) {
-    const key = l.dayLabel || NO_DAY;
+    const key = dayKeyOf(l);
     if (key !== NO_DAY && !dayOrder.includes(key)) dayOrder.push(key);
   }
   dayOrder.sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true }));
@@ -98,7 +110,7 @@ export default function LocationsByDay({ locations, groupId, isLoading }: Locati
   const groups = dayOrder.map(day => ({
     key: day,
     label: day,
-    items: locations.filter(l => l.dayLabel === day),
+    items: locations.filter(l => dayKeyOf(l) === day),
   }));
   if (hasNoDay || groups.length === 0) {
     groups.push({
@@ -111,12 +123,37 @@ export default function LocationsByDay({ locations, groupId, isLoading }: Locati
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
-    const loc = locations.find(l => l.id === active.id);
-    if (!loc) return;
-    const targetDay = over.id as string;
-    const currentDay = loc.dayLabel || NO_DAY;
-    if (targetDay === currentDay) return;
-    moveMutation.mutate({ id: loc.id, dayLabel: targetDay === NO_DAY ? null : targetDay });
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    if (activeId === overId) return;
+
+    const activeLoc = locations.find(l => l.id === activeId);
+    if (!activeLoc) return;
+
+    const activeDay = dayKeyOf(activeLoc);
+    const overIsContainer = groups.some(g => g.key === overId);
+    const overLoc = overIsContainer ? undefined : locations.find(l => l.id === overId);
+    const targetDay = overIsContainer ? overId : (overLoc ? dayKeyOf(overLoc) : activeDay);
+    const targetDayLabel = targetDay === NO_DAY ? null : targetDay;
+    const targetItems = groups.find(g => g.key === targetDay)?.items ?? [];
+
+    if (targetDay === activeDay) {
+      // Reorder within the same day.
+      const ids = targetItems.map(l => l.id);
+      const from = ids.indexOf(activeId);
+      const to = overLoc ? ids.indexOf(overId) : ids.length - 1;
+      if (from === -1 || to === -1 || from === to) return;
+      const newOrder = arrayMove(ids, from, to);
+      reorderMutation.mutate({ dayLabel: targetDayLabel, orderedIds: newOrder });
+    } else {
+      // Move to a different day, inserting it at the drop position, then persist that day's order.
+      const ids = targetItems.map(l => l.id).filter(id => id !== activeId);
+      const insertIndex = overLoc ? ids.indexOf(overId) : ids.length;
+      ids.splice(insertIndex === -1 ? ids.length : insertIndex, 0, activeId);
+      moveMutation.mutate({ id: activeId, dayLabel: targetDayLabel }, {
+        onSuccess: () => reorderMutation.mutate({ dayLabel: targetDayLabel, orderedIds: ids }),
+      });
+    }
   };
 
   if (isLoading) {
@@ -143,5 +180,7 @@ export default function LocationsByDay({ locations, groupId, isLoading }: Locati
     </DndContext>
   );
 }
+
+
 
 

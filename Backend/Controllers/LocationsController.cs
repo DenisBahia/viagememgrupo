@@ -40,7 +40,7 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService,
             .Where(l => l.GroupId == groupId)
             .Include(l => l.AddedBy)
             .Include(l => l.Votes).ThenInclude(v => v.User)
-            .OrderBy(l => l.VisitDate).ThenBy(l => l.VisitTime).ThenBy(l => l.CreatedAt)
+            .OrderBy(l => l.DayOrder ?? int.MaxValue).ThenBy(l => l.VisitDate).ThenBy(l => l.VisitTime).ThenBy(l => l.CreatedAt)
             .ToListAsync();
 
         return Ok(locations.Select(MapToDto));
@@ -125,6 +125,29 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService,
         db.Locations.Remove(location);
         await db.SaveChangesAsync();
         return NoContent();
+    }
+
+    // Drag & drop reordering: persists the manual order of locations within a day so the
+    // sequence is respected both in the sidebar list and in the map's route line.
+    [HttpPut("groups/{groupId}/locations/reorder")]
+    public async Task<ActionResult> ReorderLocations(Guid groupId, ReorderLocationsRequest req)
+    {
+        if (!await IsMemberAsync(groupId)) return Forbid();
+        if (req.OrderedLocationIds.Count == 0) return Ok(new { updated = 0 });
+
+        var locations = await db.Locations
+            .Where(l => l.GroupId == groupId && req.OrderedLocationIds.Contains(l.Id))
+            .ToListAsync();
+
+        for (var i = 0; i < req.OrderedLocationIds.Count; i++)
+        {
+            var loc = locations.FirstOrDefault(l => l.Id == req.OrderedLocationIds[i]);
+            if (loc == null) continue;
+            loc.DayOrder = i;
+        }
+
+        await db.SaveChangesAsync();
+        return Ok(new { updated = locations.Count });
     }
 
     // Like / dislike a location. Voting again with the same value removes the vote (toggle off).
@@ -243,7 +266,7 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService,
         l.Id, l.Name, l.Address, l.GoogleMapsUrl, l.GooglePlaceId,
         l.Lat, l.Lng, l.Type, l.Priority, l.VisitDate, l.VisitTime,
         l.DurationHours, l.NeedsReservation, l.ReservationDone,
-        l.Notes, l.GoogleRating, l.DayLabel, l.PhotoUrl,
+        l.Notes, l.GoogleRating, l.DayLabel, l.DayOrder, l.PhotoUrl,
         l.AddedBy?.Name ?? "", l.CreatedAt,
         l.Votes.Count(v => v.IsLike),
         l.Votes.Count(v => !v.IsLike),

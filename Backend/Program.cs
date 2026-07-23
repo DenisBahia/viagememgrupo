@@ -36,11 +36,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 
 // Services
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<GoogleMapsService>();
 builder.Services.AddScoped<GeminiService>();
+builder.Services.AddScoped<ItineraryService>();
 
 // HttpClient for Google Maps (with redirect for goo.gl)
 builder.Services.AddHttpClient();

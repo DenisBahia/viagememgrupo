@@ -1,7 +1,8 @@
 import axios from 'axios';
 import type {
   AuthResponse, TravelGroup, Location,
-  ParsedPlace, CreateLocationRequest, UpdateLocationRequest, AiTips
+  ParsedPlace, CreateLocationRequest, UpdateLocationRequest, AiTips,
+  ItinerarySuggestion, ItineraryAssignment, ExportRoute
 } from '../types';
 
 const api = axios.create({ baseURL: '/api' });
@@ -68,6 +69,9 @@ export const updateLocation = (id: string, data: UpdateLocationRequest) =>
 export const deleteLocation = (id: string) =>
   api.delete(`/locations/${id}`);
 
+export const reorderLocations = (groupId: string, dayLabel: string | null, orderedLocationIds: string[]) =>
+  api.put(`/groups/${groupId}/locations/reorder`, { dayLabel, orderedLocationIds }).then(r => r.data);
+
 export const voteLocation = (id: string, isLike: boolean) =>
   api.post<Location>(`/locations/${id}/vote`, { isLike }).then(r => r.data);
 
@@ -81,4 +85,15 @@ export const exportRoute = (groupId: string, dayLabel?: string) =>
 
 export const getLocationAiTips = (id: string) =>
   api.get<AiTips>(`/locations/${id}/ai-tips`).then(r => r.data);
+
+// Itinerary suggestions
+export const suggestItinerary = (groupId: string, locationIds?: string[]) =>
+  api.post<ItinerarySuggestion>(`/groups/${groupId}/itinerary/suggest`, { locationIds }).then(r => r.data);
+
+export const applyItinerary = (groupId: string, assignments: ItineraryAssignment[]) =>
+  api.post(`/groups/${groupId}/itinerary/apply`, { assignments }).then(r => r.data);
+
+export const exportRoutes = (groupId: string, locationIds?: string[]) =>
+  api.post<ExportRoute[]>(`/groups/${groupId}/export-routes`, { locationIds }).then(r => r.data);
+
 
