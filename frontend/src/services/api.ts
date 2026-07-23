@@ -60,6 +60,10 @@ export const getLocations = (groupId: string) =>
 export const previewLocation = (groupId: string, url: string) =>
   api.post<ParsedPlace>(`/groups/${groupId}/locations/preview`, { url }).then(r => r.data);
 
+// Search for a place by free text directly in the app (no ready-made Google Maps link needed)
+export const searchPlaces = (groupId: string, query: string) =>
+  api.get<ParsedPlace[]>(`/groups/${groupId}/locations/search`, { params: { query } }).then(r => r.data);
+
 export const addLocation = (groupId: string, data: CreateLocationRequest) =>
   api.post<Location>(`/groups/${groupId}/locations`, data).then(r => r.data);
 

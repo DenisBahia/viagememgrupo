@@ -1,21 +1,37 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { previewLocation, addLocation } from '../../services/api';
+import { previewLocation, addLocation, searchPlaces } from '../../services/api';
 import toast from 'react-hot-toast';
 import type { ParsedPlace, Priority, LocationType } from '../../types';
 import { PRIORITY_CONFIG, TYPE_CONFIG } from '../ui/constants';
-import { Search, MapPin, Star, X } from 'lucide-react';
+import { Search, MapPin, Star, X, Link as LinkIcon } from 'lucide-react';
 
 interface LocationFormProps {
   groupId: string;
   onClose: () => void;
 }
 
+// Builds a real, shareable Google Maps link for a place found via text search, using the
+// official `query_place_id` format so it points precisely at that place (not a same-named
+// place elsewhere in the world).
+function buildMapsUrlFromPlace(place: ParsedPlace): string {
+  const query = encodeURIComponent(place.name || `${place.lat},${place.lng}`);
+  if (place.placeId) {
+    return `https://www.google.com/maps/search/?api=1&query=${query}&query_place_id=${place.placeId}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`;
+}
+
 export default function LocationForm({ groupId, onClose }: LocationFormProps) {
   const qc = useQueryClient();
+  const [mode, setMode] = useState<'link' | 'search'>('link');
   const [url, setUrl] = useState('');
   const [preview, setPreview] = useState<ParsedPlace | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ParsedPlace[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [priority, setPriority] = useState<Priority>('nice');
   const [type, setType] = useState<LocationType>('other');
@@ -38,6 +54,28 @@ export default function LocationForm({ groupId, onClose }: LocationFormProps) {
     } finally {
       setIsPreviewing(false);
     }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    setSearchResults(null);
+    try {
+      const results = await searchPlaces(groupId, searchQuery.trim());
+      if (results.length === 0) toast.error('Nenhum local encontrado para essa busca.');
+      setSearchResults(results);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Não foi possível buscar o local.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectResult = (place: ParsedPlace) => {
+    setUrl(buildMapsUrlFromPlace(place));
+    setPreview(place);
+    setType(place.suggestedType);
+    setSearchResults(null);
   };
 
   const addMutation = useMutation({
@@ -69,26 +107,111 @@ export default function LocationForm({ groupId, onClose }: LocationFormProps) {
         </div>
 
         <div className="p-4 sm:p-5 space-y-4">
-          {/* URL Input */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Link do Google Maps</label>
-            <div className="flex gap-2">
-              <input
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Cole o link do Google Maps aqui..."
-                value={url}
-                onChange={e => { setUrl(e.target.value); setPreview(null); }}
-              />
-              <button
-                onClick={handlePreview}
-                disabled={!url.trim() || isPreviewing}
-                className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1 text-sm whitespace-nowrap"
-              >
-                <Search size={14} /> {isPreviewing ? '...' : 'Buscar'}
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Aceita links longos ou encurtados do Google Maps</p>
+          {/* Mode toggle: paste a link vs. search directly in the app */}
+          <div className="flex gap-1.5 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => { setMode('link'); setSearchResults(null); }}
+              className={`flex-1 py-1.5 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition ${
+                mode === 'link' ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <LinkIcon size={13} /> Link do Maps
+            </button>
+            <button
+              onClick={() => { setMode('search'); setPreview(null); setUrl(''); }}
+              className={`flex-1 py-1.5 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition ${
+                mode === 'search' ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Search size={13} /> Buscar local
+            </button>
           </div>
+
+          {/* URL Input */}
+          {mode === 'link' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Link do Google Maps</label>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Cole o link do Google Maps aqui..."
+                  value={url}
+                  onChange={e => { setUrl(e.target.value); setPreview(null); }}
+                />
+                <button
+                  onClick={handlePreview}
+                  disabled={!url.trim() || isPreviewing}
+                  className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1 text-sm whitespace-nowrap"
+                >
+                  <Search size={14} /> {isPreviewing ? '...' : 'Buscar'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Aceita links longos ou encurtados do Google Maps</p>
+            </div>
+          )}
+
+          {/* Direct text search */}
+          {mode === 'search' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nome ou endereço do local</label>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Ex: Torre Eiffel, Restaurante XYZ..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={!searchQuery.trim() || isSearching}
+                  className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1 text-sm whitespace-nowrap"
+                >
+                  <Search size={14} /> {isSearching ? '...' : 'Buscar'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Resultados são priorizados perto do destino do grupo</p>
+
+              {/* Search results list */}
+              {searchResults && searchResults.length > 0 && !preview && (
+                <div className="mt-2 border border-gray-200 rounded-xl divide-y divide-gray-100 max-h-56 overflow-y-auto">
+                  {searchResults.map((place, idx) => (
+                    <button
+                      key={place.placeId ?? idx}
+                      onClick={() => handleSelectResult(place)}
+                      className="w-full flex items-start gap-2 p-2.5 hover:bg-indigo-50 text-left transition"
+                    >
+                      {place.photoUrl ? (
+                        <img src={place.photoUrl} alt="" className="w-12 h-12 object-cover rounded-lg flex-shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-lg">{TYPE_CONFIG[place.suggestedType]?.emoji}</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-800 text-sm truncate">{place.name}</p>
+                        <p className="text-gray-500 text-xs line-clamp-2">{place.address}</p>
+                        {place.rating && (
+                          <span className="inline-flex items-center gap-0.5 text-xs text-orange-600 mt-0.5">
+                            <Star size={10} fill="currentColor" /> {place.rating.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {preview && (
+                <button
+                  onClick={() => { setPreview(null); setUrl(''); }}
+                  className="text-xs text-indigo-600 hover:underline mt-2"
+                >
+                  ← Escolher outro local
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Preview */}
           {preview && (
@@ -112,6 +235,7 @@ export default function LocationForm({ groupId, onClose }: LocationFormProps) {
               </div>
             </div>
           )}
+
 
           {preview && (
             <>

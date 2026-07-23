@@ -50,9 +50,47 @@ public class GoogleMapsService(IConfiguration config, IHttpClientFactory httpCli
             return await ReverseGeocodeAsync(coords.Value.lat, coords.Value.lng, nameFromUrl);
 
         if (nameFromUrl != null)
-            return await SearchPlaceAsync(nameFromUrl);
+            return await SearchPlaceAsync(nameFromUrl, null);
 
         return null;
+    }
+
+    // Lets the user search for a place by free text directly in the app (instead of only
+    // pasting a ready-made Google Maps link). Returns several candidates so the user can
+    // pick the right one. `bias` (usually the group's destination) keeps results close to
+    // where the trip is happening instead of matching a same-named place elsewhere in the world.
+    public async Task<List<ParsedPlaceDto>> SearchPlacesAsync(string query, (double lat, double lng)? bias = null)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return [];
+
+        try
+        {
+            var client = httpClientFactory.CreateClient();
+            var encoded = Uri.EscapeDataString(query);
+            var requestUrl = $"https://maps.googleapis.com/maps/api/place/textsearch/json?query={encoded}&key={_apiKey}";
+            if (bias != null)
+            {
+                var latStr = bias.Value.lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var lngStr = bias.Value.lng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                requestUrl += $"&location={latStr},{lngStr}&radius=50000";
+            }
+
+            var response = await client.GetStringAsync(requestUrl);
+            var json = JsonDocument.Parse(response);
+            if (!json.RootElement.TryGetProperty("results", out var results)) return [];
+
+            var list = new List<ParsedPlaceDto>();
+            foreach (var r in results.EnumerateArray().Take(8))
+            {
+                var dto = MapPlaceResult(r, null);
+                if (dto != null) list.Add(dto);
+            }
+            return list;
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private async Task<string> ExpandUrlAsync(string url)
@@ -74,7 +112,10 @@ public class GoogleMapsService(IConfiguration config, IHttpClientFactory httpCli
 
     private static string? ExtractPlaceId(string url)
     {
-        var match = Regex.Match(url, @"[?&]place_id=([^&]+)");
+        // Matches both `place_id=` and the official `query_place_id=` link format
+        // (e.g. https://www.google.com/maps/search/?api=1&query=Name&query_place_id=ChIJ...),
+        // which we use for locations added via in-app search.
+        var match = Regex.Match(url, @"[?&](?:query_)?place_id=([^&]+)");
         return match.Success ? Uri.UnescapeDataString(match.Groups[1].Value) : null;
     }
 
@@ -113,10 +154,13 @@ public class GoogleMapsService(IConfiguration config, IHttpClientFactory httpCli
 
     private async Task<ParsedPlaceDto?> ReverseGeocodeAsync(double lat, double lng, string? hint)
     {
-        // First try nearby search if we have a name hint
+        // First try a nearby search if we have a name hint, biasing results to these exact
+        // coordinates via `locationbias` (NOT by appending the coords to the text query -
+        // that used to make Google match a same-named place on the wrong continent, e.g. a
+        // link to a spot in Ireland resolving to a US/Canada location with the same name).
         if (hint != null)
         {
-            var nearby = await SearchPlaceAsync($"{hint} {lat},{lng}");
+            var nearby = await SearchPlaceAsync(hint, (lat, lng));
             if (nearby != null) return nearby;
         }
 
@@ -135,11 +179,19 @@ public class GoogleMapsService(IConfiguration config, IHttpClientFactory httpCli
         return new ParsedPlaceDto(hint ?? address, address, lat, lng, placeId, null, null, "other");
     }
 
-    private async Task<ParsedPlaceDto?> SearchPlaceAsync(string query)
+    private async Task<ParsedPlaceDto?> SearchPlaceAsync(string query, (double lat, double lng)? bias = null)
     {
         var client = httpClientFactory.CreateClient();
         var encoded = Uri.EscapeDataString(query);
         var requestUrl = $"https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input={encoded}&inputtype=textquery&fields=place_id,name,formatted_address,geometry,rating,photos,types&key={_apiKey}";
+        if (bias != null)
+        {
+            // `locationbias=circle:RADIUS@lat,lng` biases (rather than embedding coordinates
+            // into free text, which Google's text parser doesn't reliably understand).
+            var latStr = bias.Value.lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var lngStr = bias.Value.lng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            requestUrl += $"&locationbias=circle:2000@{latStr},{lngStr}";
+        }
 
         var response = await client.GetStringAsync(requestUrl);
         var json = JsonDocument.Parse(response);

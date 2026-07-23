@@ -1,13 +1,13 @@
-import { APIProvider, Map as GoogleMap, Marker, Polyline, InfoWindow } from '@vis.gl/react-google-maps';
+import { APIProvider, Map as GoogleMap, Marker, Polyline, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Location } from '../../types';
 import { PRIORITY_PIN_COLORS, TYPE_CONFIG, PRIORITY_CONFIG, getDayColor } from '../ui/constants';
 import { voteLocation } from '../../services/api';
 import VotersTooltip from '../locations/VotersTooltip';
-import { buildPinIcon } from './mapIcons';
+import { buildPinIcon, buildCurrentLocationIcon } from './mapIcons';
 import toast from 'react-hot-toast';
-import { Star, Clock, Calendar, ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Star, Clock, Calendar, ExternalLink, ThumbsUp, ThumbsDown, LocateFixed } from 'lucide-react';
 
 interface TravelMapProps {
   locations: Location[];
@@ -19,8 +19,60 @@ interface TravelMapProps {
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
 
+// Button + logic for centering the map on the user's current device location (browser
+// geolocation). Lives inside <GoogleMap> so it can access the map instance via useMap().
+function LocateMeControl({
+  onLocated,
+  isLocating,
+  setIsLocating,
+}: {
+  onLocated: (pos: { lat: number; lng: number }) => void;
+  isLocating: boolean;
+  setIsLocating: (v: boolean) => void;
+}) {
+  const map = useMap();
+
+  const handleClick = () => {
+    if (!navigator.geolocation) {
+      toast.error('Seu navegador não suporta geolocalização.');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        onLocated(coords);
+        map?.panTo(coords);
+        map?.setZoom(15);
+        setIsLocating(false);
+      },
+      err => {
+        setIsLocating(false);
+        const msg = err.code === err.PERMISSION_DENIED
+          ? 'Permissão de localização negada. Habilite o acesso à localização no navegador.'
+          : 'Não foi possível obter sua localização atual.';
+        toast.error(msg);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isLocating}
+      title="Ver minha localização atual"
+      className="absolute top-3 right-3 z-10 bg-white shadow-md rounded-full p-2.5 text-gray-600 hover:text-indigo-600 hover:shadow-lg transition disabled:opacity-60"
+    >
+      <LocateFixed size={18} className={isLocating ? 'animate-pulse' : ''} />
+    </button>
+  );
+}
+
 export default function TravelMap({ locations, center, groupId, showRoutes = false }: TravelMapProps) {
   const [selected, setSelected] = useState<Location | null>(null);
+  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const qc = useQueryClient();
 
   const voteMutation = useMutation({
@@ -88,6 +140,13 @@ export default function TravelMap({ locations, center, groupId, showRoutes = fal
           { featureType: 'transit.station', stylers: [{ visibility: 'off' }] },
         ]}
       >
+        {/* "Ver minha localização atual" control, overlaid on the map */}
+        <LocateMeControl
+          onLocated={setMyLocation}
+          isLocating={isLocating}
+          setIsLocating={setIsLocating}
+        />
+
         {/* One colored polyline per day, connecting stops in visit order */}
         {showRoutes && dayLabels.map(label => {
           const stops = dayGroups.get(label)!;
@@ -122,6 +181,15 @@ export default function TravelMap({ locations, center, groupId, showRoutes = fal
           );
         })}
 
+        {/* Marker for the user's current device location */}
+        {myLocation && (
+          <Marker
+            position={myLocation}
+            title="Sua localização atual"
+            icon={buildCurrentLocationIcon()}
+            zIndex={1000}
+          />
+        )}
 
         {selected && (
           <InfoWindow

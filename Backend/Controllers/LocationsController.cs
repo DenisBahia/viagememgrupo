@@ -31,6 +31,24 @@ public class LocationsController(AppDbContext db, GoogleMapsService mapsService,
         return Ok(parsed);
     }
 
+    // Search for a place by free text directly in the app (no Google Maps link needed).
+    // Results are biased towards the group's destination so a search like "Central Park"
+    // doesn't return a same-named place in the wrong country.
+    [HttpGet("groups/{groupId}/locations/search")]
+    public async Task<ActionResult<List<ParsedPlaceDto>>> SearchPlaces(Guid groupId, [FromQuery] string query)
+    {
+        if (!await IsMemberAsync(groupId)) return Forbid();
+        if (string.IsNullOrWhiteSpace(query)) return Ok(new List<ParsedPlaceDto>());
+
+        var group = await db.TravelGroups.FindAsync(groupId);
+        (double lat, double lng)? bias = group?.DestinationLat != null && group.DestinationLng != null
+            ? (group.DestinationLat.Value, group.DestinationLng.Value)
+            : null;
+
+        var results = await mapsService.SearchPlacesAsync(query, bias);
+        return Ok(results);
+    }
+
     [HttpGet("groups/{groupId}/locations")]
     public async Task<ActionResult<List<LocationDto>>> GetLocations(Guid groupId)
     {
