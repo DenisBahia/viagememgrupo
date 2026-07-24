@@ -15,6 +15,19 @@ body {
   min-height: 100vh;
 }
 
+/* iOS Safari auto-zooms the page when a focused form field renders below 16px, and often
+   fails to zoom back out after the field loses focus — which is what made the whole layout
+   look "too big / shifted" after tapping into an input (e.g. the location link field, or any
+   field in the edit-location modal) and then leaving it. Forcing a >=16px font on all text
+   inputs on small screens prevents the auto-zoom from triggering in the first place. */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -67,17 +80,6 @@ body {
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
 
 body {
   margin: 0;

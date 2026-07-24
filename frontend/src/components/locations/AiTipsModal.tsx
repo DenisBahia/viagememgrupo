@@ -91,7 +91,7 @@ export default function AiTipsModal({ location, onClose }: AiTipsModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-[2px] flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200"
+        className="w-full max-w-2xl max-h-[85dvh] overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 via-white to-white">

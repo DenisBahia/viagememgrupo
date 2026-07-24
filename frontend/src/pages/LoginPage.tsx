@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import { MapPin, LogIn } from 'lucide-react';
+import { MapPin, LogIn, Compass } from 'lucide-react';
 import { PENDING_SHARE_KEY } from './JoinPage';
 
 export default function LoginPage() {
@@ -30,18 +30,17 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4 relative overflow-hidden">
-      <img
-        src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1600&q=60"
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover opacity-10"
-      />
+      {/* Decorative background accents (no travel-specific imagery, since groups can be
+          about anything: trips, restaurants, bars, or any list of places). */}
+      <MapPin size={220} className="absolute -left-10 -top-10 text-indigo-200/50 rotate-[-15deg]" />
+      <Compass size={260} className="absolute -right-16 -bottom-16 text-indigo-200/50 rotate-[10deg]" />
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8 relative z-10">
         <div className="flex flex-col items-center mb-8">
           <div className="bg-indigo-600 text-white p-3 rounded-full mb-3">
             <MapPin size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Vai Junto ✈️</h1>
-          <p className="text-gray-500 text-sm mt-1">Planeje viagens com quem você ama</p>
+          <h1 className="text-2xl font-bold text-gray-800">Rolê Junto 🧭</h1>
+          <p className="text-gray-500 text-sm mt-1">Organize e salve lugares com quem você ama</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

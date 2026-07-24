@@ -14,7 +14,7 @@ import toast from 'react-hot-toast';
 import {
   MapPin, Plus, ArrowLeft, Share2, Copy, Route,
   LogOut, Filter, Pencil, X, Link as LinkIcon, List, Map as MapIcon,
-  Sparkles, Waypoints
+  Sparkles, Waypoints, MoreVertical
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -35,6 +35,7 @@ export default function DashboardPage() {
   const [filterType, setFilterType] = useState<LocationType | ''>('');
   const [mobileView, setMobileView] = useState<'list' | 'map'>('map');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
 
 
@@ -110,14 +111,14 @@ export default function DashboardPage() {
       : undefined);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-dvh flex flex-col bg-gray-100 overflow-x-hidden">
       {/* Top bar */}
-      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3 z-10 flex-shrink-0">
-        <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-600 p-1">
+      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3 z-20 flex-shrink-0">
+        <button onClick={() => navigate('/')} className="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0">
           <ArrowLeft size={18} />
         </button>
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <div className="bg-indigo-600 text-white p-1 rounded">
+          <div className="bg-indigo-600 text-white p-1 rounded flex-shrink-0">
             <MapPin size={14} />
           </div>
           <div className="min-w-0">
@@ -129,11 +130,13 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
+
+        {/* Desktop actions */}
+        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
           {groupInfo?.isOwner && (
             <button
               onClick={openEdit}
-              className="hidden sm:flex items-center gap-1 text-xs px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50"
+              className="flex items-center gap-1 text-xs px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50"
               title="Editar grupo"
             >
               <Pencil size={13} /> Editar
@@ -141,35 +144,95 @@ export default function DashboardPage() {
           )}
           <button
             onClick={() => setShowShare(true)}
-            className="flex items-center gap-1 text-xs px-2.5 sm:px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-1 text-xs px-3 py-1.5 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50"
             title="Compartilhar"
           >
-            <Share2 size={13} /> <span className="hidden sm:inline">Compartilhar</span>
+            <Share2 size={13} /> Compartilhar
           </button>
           <button
             onClick={() => setShowItinerary(true)}
-            className="flex items-center gap-1 text-xs px-2.5 sm:px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             title="Sugerir roteiros por dia"
           >
-            <Sparkles size={13} /> <span className="hidden sm:inline">Sugerir Roteiros</span>
+            <Sparkles size={13} /> Sugerir Roteiros
           </button>
           <button
             onClick={handleExport}
-            className="flex items-center gap-1 text-xs px-2.5 sm:px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700"
             title="Exportar rotas"
           >
-            <Route size={13} /> <span className="hidden sm:inline">Exportar Rotas</span>
+            <Route size={13} /> Exportar Rotas
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1 text-xs px-2.5 sm:px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             title="Adicionar local"
           >
-            <Plus size={13} /> <span className="hidden sm:inline">Adicionar</span>
+            <Plus size={13} /> Adicionar
           </button>
           <button onClick={logout} className="text-gray-400 hover:text-gray-600 p-1" title="Sair">
             <LogOut size={16} />
           </button>
+        </div>
+
+        {/* Mobile actions: just "Adicionar" + a compact "more" menu, to avoid the
+            header overflowing the screen width (which caused horizontal scrolling). */}
+        <div className="flex sm:hidden items-center gap-1.5 flex-shrink-0 relative">
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center justify-center p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            title="Adicionar local"
+          >
+            <Plus size={16} />
+          </button>
+          <button
+            onClick={() => setShowMobileMenu(v => !v)}
+            className="flex items-center justify-center p-1.5 border border-gray-300 text-gray-500 rounded-lg hover:bg-gray-50"
+            title="Mais opções"
+          >
+            <MoreVertical size={16} />
+          </button>
+
+          {showMobileMenu && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setShowMobileMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-40 py-1">
+                <button
+                  onClick={() => { setShowShare(true); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  <Share2 size={13} /> Compartilhar
+                </button>
+                <button
+                  onClick={() => { setShowItinerary(true); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  <Sparkles size={13} /> Sugerir Roteiros
+                </button>
+                <button
+                  onClick={() => { handleExport(); setShowMobileMenu(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  <Route size={13} /> Exportar Rotas
+                </button>
+                {groupInfo?.isOwner && (
+                  <button
+                    onClick={() => { openEdit(); setShowMobileMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                  >
+                    <Pencil size={13} /> Editar Grupo
+                  </button>
+                )}
+                <div className="border-t border-gray-100 my-1" />
+                <button
+                  onClick={() => { setShowMobileMenu(false); logout(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50"
+                >
+                  <LogOut size={13} /> Sair
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
@@ -238,14 +301,6 @@ export default function DashboardPage() {
             />
             <Waypoints size={12} /> Mostrar rotas por dia no mapa
           </label>
-          {groupInfo?.isOwner && (
-            <button
-              onClick={openEdit}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50"
-            >
-              <Pencil size={12} /> Editar grupo
-            </button>
-          )}
         </div>
       )}
 
@@ -353,7 +408,7 @@ export default function DashboardPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Destino</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Destino / Tema</label>
                 <input
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={editForm.destination}

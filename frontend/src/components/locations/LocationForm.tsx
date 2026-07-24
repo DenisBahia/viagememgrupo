@@ -100,7 +100,7 @@ export default function LocationForm({ groupId, onClose }: LocationFormProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[95dvh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">Adicionar Local</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>

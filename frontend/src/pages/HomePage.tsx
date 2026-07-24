@@ -6,10 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import {
   MapPin, Plus, LogIn as JoinIcon, Trash2, LogOut, Calendar,
-  Pencil, Share2, Link as LinkIcon, X, Plane
+  Pencil, Share2, Link as LinkIcon, X, Compass, Star
 } from 'lucide-react';
 import type { TravelGroup } from '../types';
-import heroImg from '../assets/hero.png';
 import MembersTooltip from '../components/groups/MembersTooltip';
 
 type GroupFormState = { name: string; destination: string; startDate: string; endDate: string };
@@ -119,9 +118,9 @@ export default function HomePage() {
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
-            <Plane size={18} />
+            <Compass size={18} />
           </div>
-          <span className="font-bold text-gray-800 text-sm sm:text-base">Vai Junto ✈️</span>
+          <span className="font-bold text-gray-800 text-sm sm:text-base">Rolê Junto 🧭</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <span className="hidden sm:inline text-sm text-gray-600">Olá, <b>{user?.name}</b></span>
@@ -133,23 +132,22 @@ export default function HomePage() {
 
       {/* Hero */}
       <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-blue-500">
-        <img src={heroImg} alt="" className="absolute inset-0 w-full h-full object-cover opacity-25" />
-        <img
-          src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1600&q=60"
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover opacity-20 hidden sm:block"
-        />
+        {/* Decorative pins/stars instead of a travel-specific photo, since groups can now be
+            about anything: restaurants, bars, trips, or any list of places to visit. */}
+        <MapPin size={140} className="absolute -left-6 -top-8 text-white/10 rotate-[-15deg]" />
+        <Compass size={160} className="absolute -right-10 -bottom-12 text-white/10 rotate-[12deg]" />
+        <Star size={64} className="absolute right-1/4 top-4 text-white/10 hidden sm:block" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 text-center">
-          <h1 className="text-white text-2xl sm:text-3xl font-bold">Planeje a próxima viagem, junto ✨</h1>
+          <h1 className="text-white text-2xl sm:text-3xl font-bold">Organize os próximos lugares, juntos ✨</h1>
           <p className="text-indigo-100 mt-1.5 text-sm sm:text-base">
-            Crie um grupo, junte a galera e monte o roteiro colaborativo no mapa.
+            Crie um grupo, junte a galera e monte a lista de lugares no mapa — viagens, restaurantes, bares ou qualquer rolê.
           </p>
         </div>
       </div>
 
       <main className="max-w-5xl mx-auto p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Meus Grupos de Viagem</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Meus Grupos</h2>
           <div className="flex gap-2">
             <button
               onClick={() => { setShowJoin(true); closeGroupForms(); }}
@@ -177,16 +175,16 @@ export default function HomePage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nome do grupo</label>
                 <input
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Ex: Madrid 2025"
+                  placeholder="Ex: Madrid 2025, Restaurantes SP, Bares favoritos..."
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Destino</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Destino / Tema</label>
                 <input
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Ex: Madrid, Espanha"
+                  placeholder="Ex: Madrid, Espanha ou Zona Sul de SP"
                   value={form.destination}
                   onChange={e => setForm(f => ({ ...f, destination: e.target.value }))}
                 />

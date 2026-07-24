@@ -81,7 +81,7 @@ export default function ItineraryModal({ groupId, locations, onClose, onApplied 
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
           <h2 className="font-bold text-gray-800 flex items-center gap-2">
             <Sparkles size={18} className="text-indigo-600" /> Sugestão de Roteiro

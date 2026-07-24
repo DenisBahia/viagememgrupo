@@ -1,6 +1,7 @@
-# 🗺️ ViagemEmGrupo
+# 🧭 Rolê Junto
 
-Aplicativo web para organizar viagens em grupo com integração ao Google Maps.
+Aplicativo web para organizar e salvar lugares em grupo (viagens, restaurantes, bares ou
+qualquer lista de lugares para ir), com integração ao Google Maps.
 
 ## 🚀 Rodando Localmente
 
@@ -120,7 +121,7 @@ ViagemEmGrupo/
 ## 🗺️ Funcionalidades
 
 - ✅ Autenticação (cadastro/login com JWT)
-- ✅ Criar grupos de viagem com chave de compartilhamento
+- ✅ Criar grupos de lugares (viagens, restaurantes, bares etc.) com chave de compartilhamento
 - ✅ Entrar em grupos de amigos via chave
 - ✅ Adicionar locais via link do Google Maps (auto-preenche nome, endereço, coordenadas, rating)
 - ✅ Classificar locais por prioridade: Com Certeza / Seria uma boa / Se rolar, rolou

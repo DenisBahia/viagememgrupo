@@ -52,7 +52,7 @@ export default function EditLocationModal({ location: loc, groupId, onClose }: E
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[95dvh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100">
           <div className="min-w-0">
             <h2 className="font-bold text-gray-800 truncate">Editar Local</h2>
