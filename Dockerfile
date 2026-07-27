@@ -1,7 +1,9 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /src/frontend
 ARG VITE_GOOGLE_MAPS_API_KEY=""
+ARG VITE_GOOGLE_CLIENT_ID=""
 ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./

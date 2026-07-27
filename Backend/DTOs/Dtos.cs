@@ -3,8 +3,9 @@ namespace Backend.DTOs;
 // Auth
 public record RegisterRequest(string Name, string Email, string Password);
 public record LoginRequest(string Email, string Password);
+public record GoogleLoginRequest(string IdToken);
 public record AuthResponse(string Token, UserDto User);
-public record UserDto(Guid Id, string Name, string Email);
+public record UserDto(Guid Id, string Name, string Email, string? AvatarUrl = null);
 
 // Groups
 public record CreateGroupRequest(string Name, string Destination, DateTime? StartDate, DateTime? EndDate);

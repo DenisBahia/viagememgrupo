@@ -67,6 +67,8 @@ Defina no serviço da aplicação:
 - `Jwt__Audience` = `ViagemEmGrupoUsers`
 - `GoogleMaps__ApiKey` = sua chave Google Maps
 - `VITE_GOOGLE_MAPS_API_KEY` = mesma chave (usada no build do frontend)
+- `GoogleAuth__ClientId` = Client ID OAuth do Google (login com Google)
+- `VITE_GOOGLE_CLIENT_ID` = mesmo Client ID (usado no build do frontend)
 
 > No .NET, `__` (duplo underscore) mapeia para `:` no `appsettings`.
 
@@ -91,6 +93,32 @@ Cada `git push` para a branch conectada dispara novo deploy automaticamente.
   - `Host=localhost;Database=viagememgrupo;Username=<seu_usuario>`
 - **Google Maps API Key**: configurada em `Backend/appsettings.json` e `frontend/.env`
 - **JWT Secret**: configurado em `Backend/appsettings.json`
+
+### Login com Google
+
+O app suporta criar conta e entrar usando a conta Google, além de email/senha.
+
+1. Crie um **OAuth Client ID** (tipo *Web application*) no
+   [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+2. Em **Authorized JavaScript origins**, adicione as URLs do frontend, por exemplo:
+   - `http://localhost:5173` (dev)
+   - a URL de produção do Railway (ex.: `https://seu-app.up.railway.app`)
+3. Copie o **Client ID** gerado e configure:
+   - Local: `GoogleAuth:ClientId` em `Backend/appsettings.Local.json` e
+     `VITE_GOOGLE_CLIENT_ID` em `frontend/.env.local`.
+   - Railway: veja a seção **"Configurar variáveis de ambiente do serviço web"** acima —
+     `GoogleAuth__ClientId` (runtime) e `VITE_GOOGLE_CLIENT_ID` (build-time).
+
+     > ⚠️ `VITE_GOOGLE_CLIENT_ID` é embutida no bundle do frontend **durante o build**
+     > (não em runtime). O `Dockerfile` já declara `ARG VITE_GOOGLE_CLIENT_ID`, e o
+     > Railway passa automaticamente as variáveis de ambiente do serviço como build
+     > args quando existe um `ARG` com o mesmo nome no Dockerfile — então basta
+     > cadastrar a variável normalmente nas *Service Variables* do Railway.
+     > Depois de adicionar/alterar essa variável, force um novo build (Deploy →
+     > Redeploy) para o valor ser realmente embutido no JS gerado.
+4. O botão "Entrar com o Google" aparece nas páginas de login e cadastro. No primeiro
+   acesso, o backend cria automaticamente uma conta vinculada ao e-mail do Google
+   (endpoint `POST /api/auth/google`).
 
 ### Migrations (se precisar resetar o banco)
 

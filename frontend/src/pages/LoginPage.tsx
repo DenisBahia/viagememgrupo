@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { MapPin, LogIn, Compass } from 'lucide-react';
 import { PENDING_SHARE_KEY } from './JoinPage';
+import GoogleLoginButton from '../components/ui/GoogleLoginButton';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -75,6 +76,14 @@ export default function LoginPage() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="h-px bg-gray-200 flex-1" />
+          <span className="text-xs text-gray-400 uppercase">ou</span>
+          <div className="h-px bg-gray-200 flex-1" />
+        </div>
+
+        <GoogleLoginButton />
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Não tem conta?{' '}

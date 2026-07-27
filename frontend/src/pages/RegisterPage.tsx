@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { MapPin, UserPlus, Compass } from 'lucide-react';
 import { PENDING_SHARE_KEY } from './JoinPage';
+import GoogleLoginButton from '../components/ui/GoogleLoginButton';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -91,6 +92,14 @@ export default function RegisterPage() {
             {loading ? 'Criando...' : 'Criar Conta'}
           </button>
         </form>
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="h-px bg-gray-200 flex-1" />
+          <span className="text-xs text-gray-400 uppercase">ou</span>
+          <div className="h-px bg-gray-200 flex-1" />
+        </div>
+
+        <GoogleLoginButton />
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Já tem conta?{' '}

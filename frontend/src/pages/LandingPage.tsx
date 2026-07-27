@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   MapPin, Compass, Users, Sparkles, Vote, Share2, ArrowRight,
-  CheckCircle2, Star, Menu, X
+  Menu, X, Star
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -34,11 +34,6 @@ const steps = [
   { title: 'Monte o rolê juntos', description: 'Adicionem lugares, votem e organizem o roteiro final sem grupo de WhatsApp bagunçado.' },
 ];
 
-const testimonials = [
-  { name: 'Marina S.', role: 'Viagem para Lisboa', quote: 'Finalmente paramos de perder mensagens no WhatsApp. Todo mundo vota e o roteiro sai sozinho!' },
-  { name: 'Lucas R.', role: 'Grupo de restaurantes', quote: 'Uso até para escolher onde jantar com a galera do trabalho. Simples e rápido.' },
-  { name: 'Beatriz A.', role: 'Viagem em família', quote: 'A IA sugeriu um roteiro por dia que economizou horas de pesquisa. Recomendo demais.' },
-];
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -58,7 +53,6 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
             <a href="#recursos" className="hover:text-indigo-600 transition">Recursos</a>
             <a href="#como-funciona" className="hover:text-indigo-600 transition">Como funciona</a>
-            <a href="#depoimentos" className="hover:text-indigo-600 transition">Depoimentos</a>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -69,7 +63,7 @@ export default function LandingPage() {
               to="/register"
               className="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
             >
-              Criar conta grátis
+              Criar conta
             </Link>
           </div>
 
@@ -82,14 +76,13 @@ export default function LandingPage() {
           <div className="md:hidden border-t border-gray-100 px-4 py-3 flex flex-col gap-3 text-sm font-medium text-gray-600">
             <a href="#recursos" onClick={() => setMenuOpen(false)}>Recursos</a>
             <a href="#como-funciona" onClick={() => setMenuOpen(false)}>Como funciona</a>
-            <a href="#depoimentos" onClick={() => setMenuOpen(false)}>Depoimentos</a>
             <Link to="/login" onClick={() => setMenuOpen(false)}>Entrar</Link>
             <Link
               to="/register"
               onClick={() => setMenuOpen(false)}
               className="bg-indigo-600 text-white text-center px-4 py-2 rounded-lg"
             >
-              Criar conta grátis
+              Criar conta
             </Link>
           </div>
         )}
@@ -118,7 +111,7 @@ export default function LandingPage() {
                 to="/register"
                 className="flex items-center justify-center gap-2 bg-white text-indigo-700 font-semibold px-6 py-3 rounded-xl hover:bg-indigo-50 transition shadow-lg"
               >
-                Comece grátis agora <ArrowRight size={16} />
+                Começar agora <ArrowRight size={16} />
               </Link>
               <Link
                 to="/login"
@@ -126,25 +119,6 @@ export default function LandingPage() {
               >
                 Já tenho conta
               </Link>
-            </div>
-            <p className="text-indigo-100/80 text-xs mt-4">Grátis para começar. Sem cartão de crédito.</p>
-          </div>
-        </section>
-
-        {/* Social proof */}
-        <section className="border-b border-gray-100">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-indigo-600">+1.000</p>
-              <p className="text-xs sm:text-sm text-gray-500">Grupos criados</p>
-            </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-indigo-600">+8.000</p>
-              <p className="text-xs sm:text-sm text-gray-500">Lugares salvos</p>
-            </div>
-            <div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-indigo-600">4.9/5</p>
-              <p className="text-xs sm:text-sm text-gray-500">Avaliação média</p>
             </div>
           </div>
         </section>
@@ -191,27 +165,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Testimonials */}
-        <section id="depoimentos" className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Quem usa, recomenda</h2>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {testimonials.map(t => (
-              <figure key={t.name} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <div className="flex gap-0.5 text-amber-400 mb-3">
-                  {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
-                </div>
-                <blockquote className="text-sm text-gray-600 leading-relaxed">“{t.quote}”</blockquote>
-                <figcaption className="mt-4 text-sm">
-                  <span className="font-semibold text-gray-800">{t.name}</span>
-                  <span className="text-gray-400"> · {t.role}</span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
-
         {/* Final CTA */}
         <section className="bg-gradient-to-br from-indigo-600 to-blue-600 py-16 sm:py-20">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
@@ -219,14 +172,14 @@ export default function LandingPage() {
               Pronto para organizar o próximo rolê?
             </h2>
             <p className="text-indigo-100 mt-3">
-              Crie sua conta gratuitamente e monte o roteiro com o seu grupo hoje mesmo.
+              Crie sua conta e monte o roteiro com o seu grupo hoje mesmo.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mt-7">
               <Link
                 to="/register"
                 className="flex items-center justify-center gap-2 bg-white text-indigo-700 font-semibold px-6 py-3 rounded-xl hover:bg-indigo-50 transition shadow-lg"
               >
-                Criar conta grátis <ArrowRight size={16} />
+                Criar conta <ArrowRight size={16} />
               </Link>
               <Link
                 to="/login"
@@ -236,8 +189,6 @@ export default function LandingPage() {
               </Link>
             </div>
             <div className="flex items-center justify-center gap-4 text-indigo-100 text-xs mt-6 flex-wrap">
-              <span className="flex items-center gap-1"><CheckCircle2 size={14} /> Grátis para começar</span>
-              <span className="flex items-center gap-1"><CheckCircle2 size={14} /> Sem cartão de crédito</span>
               <span className="flex items-center gap-1"><Share2 size={14} /> Convide quantos amigos quiser</span>
             </div>
           </div>

@@ -32,6 +32,9 @@ export const register = (name: string, email: string, password: string) =>
 export const login = (email: string, password: string) =>
   api.post<AuthResponse>('/auth/login', { email, password }).then(r => r.data);
 
+export const loginWithGoogle = (idToken: string) =>
+  api.post<AuthResponse>('/auth/google', { idToken }).then(r => r.data);
+
 // Groups
 export const getGroups = () =>
   api.get<TravelGroup[]>('/groups').then(r => r.data);
