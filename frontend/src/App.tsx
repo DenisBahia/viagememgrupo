@@ -14,6 +14,16 @@ import ErrorBoundary from './components/ui/ErrorBoundary';
 const queryClient = new QueryClient();
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
+if (!googleClientId) {
+  // Helps diagnose deploys (e.g. Railway) where VITE_GOOGLE_CLIENT_ID wasn't
+  // baked into the frontend build. Without this, Google's SDK throws a
+  // confusing "Error 400: invalid_request - Missing required parameter: client_id".
+  console.warn(
+    '[Google Login] VITE_GOOGLE_CLIENT_ID não definida no build do frontend. ' +
+    'O botão "Entrar com o Google" ficará desabilitado.'
+  );
+}
+
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;

@@ -4,6 +4,9 @@ ARG VITE_GOOGLE_MAPS_API_KEY=""
 ARG VITE_GOOGLE_CLIENT_ID=""
 ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+# Debug line: confirms in the Railway build logs whether VITE_GOOGLE_CLIENT_ID actually
+# reached this build stage (Client IDs aren't secret, safe to print). Remove once confirmed.
+RUN echo "VITE_GOOGLE_CLIENT_ID (build-time) = '${VITE_GOOGLE_CLIENT_ID}'"
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./

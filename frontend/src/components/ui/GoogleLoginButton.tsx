@@ -1,9 +1,12 @@
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { AlertTriangle } from 'lucide-react';
 import { loginWithGoogle } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { PENDING_SHARE_KEY } from '../../pages/JoinPage';
+
+const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 // Renders Google's official Sign-In button and exchanges the returned ID token
 // for our own JWT via POST /api/auth/google. Used on both the login and register
@@ -26,6 +29,19 @@ export default function GoogleLoginButton() {
       toast.error(err.response?.data?.message || 'Erro ao entrar com o Google.');
     }
   };
+
+  // Without a Client ID, Google's SDK fails with a confusing "Error 400: invalid_request -
+  // Missing required parameter: client_id" page. Show a clear inline hint instead of
+  // rendering a button that's guaranteed to fail — this usually means VITE_GOOGLE_CLIENT_ID
+  // wasn't set (or wasn't baked in at build time) on the current deploy.
+  if (!hasGoogleClientId) {
+    return (
+      <div className="flex items-center gap-2 justify-center text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <AlertTriangle size={14} className="shrink-0" />
+        <span>Login com Google indisponível (VITE_GOOGLE_CLIENT_ID não configurada neste ambiente).</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center">
@@ -51,6 +67,8 @@ export default function GoogleLoginButton() {
     </div>
   );
 }
+
+
 
 
 
