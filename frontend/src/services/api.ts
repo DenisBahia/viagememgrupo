@@ -16,10 +16,19 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    const url: string = err.config?.url ?? '';
+    // Auth endpoints themselves can legitimately return 401 (wrong password, invalid
+    // Google token, etc). Those must NOT trigger a forced logout/redirect — the calling
+    // page (Login/Register/GoogleLoginButton) already shows a proper toast for them.
+    // Only treat 401s from *other* (already-authenticated) endpoints as "session expired".
+    const isAuthEndpoint = url.startsWith('/auth/');
+    if (err.response?.status === 401 && !isAuthEndpoint) {
+      console.warn('[api] 401 recebido de', url, '- sessão expirada/token inválido, redirecionando para /login.', err.response?.data);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    } else if (err.response?.status === 401) {
+      console.warn('[api] 401 recebido do endpoint de auth', url, err.response?.data);
     }
     return Promise.reject(err);
   }

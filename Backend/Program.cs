@@ -32,6 +32,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
         };
+
+        // Logs the real reason behind any 401 (expired token, bad signature, issuer/audience
+        // mismatch, etc). Without this, a JWT config problem in production just looks like a
+        // silent "redirected back to login" on the frontend, with no clue why.
+        opt.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>()
+                    .LogWarning(ctx.Exception, "JWT authentication failed for {Path}", ctx.HttpContext.Request.Path);
+                return Task.CompletedTask;
+            },
+            OnChallenge = ctx =>
+            {
+                if (ctx.AuthenticateFailure != null)
+                {
+                    ctx.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>()
+                        .LogWarning("JWT challenge for {Path}: {Error} - {ErrorDescription}",
+                            ctx.HttpContext.Request.Path, ctx.Error, ctx.ErrorDescription);
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();

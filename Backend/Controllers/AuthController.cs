@@ -10,7 +10,7 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AppDbContext db, JwtService jwt, IConfiguration config) : ControllerBase
+public class AuthController(AppDbContext db, JwtService jwt, IConfiguration config, ILogger<AuthController> logger) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest req)
@@ -59,8 +59,12 @@ public class AuthController(AppDbContext db, JwtService jwt, IConfiguration conf
             };
             payload = await GoogleJsonWebSignature.ValidateAsync(req.IdToken, settings);
         }
-        catch (InvalidJwtException)
+        catch (InvalidJwtException ex)
         {
+            // Log the real reason (e.g. audience mismatch because GoogleAuth:ClientId doesn't
+            // match the OAuth Client ID actually used on the frontend, expired token, etc.)
+            // so it shows up in the Railway logs instead of just a generic 401 on the client.
+            logger.LogWarning(ex, "Google ID token validation failed");
             return Unauthorized(new { message = "Token do Google inválido." });
         }
 
